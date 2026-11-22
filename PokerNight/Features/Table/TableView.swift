@@ -21,7 +21,7 @@ struct TableView: View {
                 ContentUnavailableView("No hand in progress", systemImage: "suit.club", description: Text("Start a hand to begin playing."))
                     .overlay(alignment: .bottom) {
                         Button("Start hand") { controller.startHand() }
-                            .buttonStyle(.borderedProminent)
+                            .buttonStyle(ThemedButtonStyle(kind: .strong))
                             .padding()
                     }
             }

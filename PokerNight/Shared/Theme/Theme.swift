@@ -14,20 +14,20 @@ extension Color {
 }
 
 enum Theme {
-    static let background = Color(hex: "2d2327")
-    static let surface = Color(hex: "45364b")
-    static let accent = Color(hex: "62466b")
-    static let textPrimary = Color(hex: "b5c2b7")
-    static let textSecondary = Color(hex: "8c93a8")
-    static let suitRed = Color(hex: "e39a9a")
+    static let background = Color.black
+    static let surface = Color.black
+    static let accent = Color.red
+    static let textPrimary = Color.white
+    static let textSecondary = Color.white.opacity(0.7)
+    static let suitRed = Color.red
 }
 
 struct ThemedScreenModifier: ViewModifier {
     func body(content: Content) -> some View {
         content
-            .background(Theme.background)
-            .ignoresSafeArea()
+            .background(Theme.background.ignoresSafeArea())
             .scrollContentBackground(.hidden)
+            .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(Theme.background, for: .navigationBar)
             .toolbarBackground(Theme.background, for: .tabBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
