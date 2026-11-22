@@ -312,8 +312,18 @@ private struct RaiseView: View {
         NavigationStack {
             VStack(spacing: 24) {
                 Text("Raise to \(amount)").font(.title.bold())
-                Stepper("Amount", value: $amount, in: range)
+                Stepper("Amount", value: $amount, in: range, step: 10)
                     .tint(Theme.textPrimary)
+                HStack {
+                    Button("-10") { amount = max(range.lowerBound, amount - 10) }.buttonStyle(ThemedButtonStyle(kind: .outline))
+                    Button("-100") { amount = max(range.lowerBound, amount - 100) }.buttonStyle(ThemedButtonStyle(kind: .outline))
+                    Button("-1000") { amount = max(range.lowerBound, amount - 1000) }.buttonStyle(ThemedButtonStyle(kind: .outline))
+                }
+                HStack {
+                    Button("+10") { amount = min(range.upperBound, amount + 10) }.buttonStyle(ThemedButtonStyle(kind: .outline))
+                    Button("+100") { amount = min(range.upperBound, amount + 100) }.buttonStyle(ThemedButtonStyle(kind: .outline))
+                    Button("+1000") { amount = min(range.upperBound, amount + 1000) }.buttonStyle(ThemedButtonStyle(kind: .outline))
+                }
                 Slider(value: Binding(
                     get: { Double(amount) },
                     set: { amount = min(range.upperBound, max(range.lowerBound, Int($0))) }

@@ -8,7 +8,7 @@ struct NightSetupView: View {
     @Query(sort: \Player.name) private var roster: [Player]
     let onStart: (TableSession) -> Void
     @State private var selected = Set<UUID>()
-    @State private var startingStack = 200
+    @State private var startingStack = 10
     @State private var smallBlind = 1
     @State private var bigBlind = 2
     @State private var rebuysAllowed = false
@@ -30,7 +30,7 @@ struct NightSetupView: View {
                     }
                 }
                 Section("Night") {
-                    Stepper("Starting stack: \(startingStack)", value: $startingStack, in: 1...10000)
+                    Stepper("Starting stack: \(startingStack)", value: $startingStack, in: 10...10000, step: 10)
                         .listRowBackground(Theme.surface)
                     Stepper("Small blind: \(smallBlind)", value: $smallBlind, in: 1...1000)
                         .listRowBackground(Theme.surface)

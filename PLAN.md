@@ -20,6 +20,7 @@
 
 - Theme pass added after Phase N.
 - Theme: replaced custom palette with plain black, red, and white; navigation titles remain inline to prevent overlap.
+- 2026-11-22: Major tweak — default starting stack changed to 10, with 10-point setup increments and ±10/±100/±1000 raise controls.
 
 **Open questions** (append; remove when answered):
 
@@ -397,7 +398,7 @@ public func replay(_ setup: HandSetup, _ events: [HandEvent]) throws -> HandStat
   - `NightResult`: player id, player name, totalBuyIn, finalStack, net
 - **Home:** Resume night (only if an active file exists), New night, Past nights, Players, Hand rankings, Showdown checker.
 - **Players:** add, rename, delete.
-- **New night:** pick players from the roster or add new ones inline, drag to set seat order, starting stack (default 200), blinds (default 1/2), rebuys toggle, first dealer (pick or random).
+- **New night:** pick players from the roster or add new ones inline, drag to set seat order, starting stack (default 10, in 10-point increments), blinds (default 1/2), rebuys toggle, first dealer (pick or random).
 - **End night:** each player's net sorted best to worst, saves a `Night`, deletes the active-night file.
 - **Past nights:** list by date showing the top result; a detail view with every player's net.
 
