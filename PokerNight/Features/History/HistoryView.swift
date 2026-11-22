@@ -13,10 +13,12 @@ struct HistoryView: View {
                     Text(night.date, format: .dateTime.year().month().day())
                     Text("\(night.handsPlayed) hands · Blinds \(night.smallBlind)/\(night.bigBlind)")
                         .font(.caption)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.textSecondary)
                 }
             }
+            .listRowBackground(Theme.surface)
         }
+        .themedScreen()
         .overlay {
             if nights.isEmpty { ContentUnavailableView("No past nights", systemImage: "clock") }
         }
@@ -37,9 +39,12 @@ private struct NightDetailView: View {
                 Text(result.name)
                 Spacer()
                 Text(result.net >= 0 ? "+\(result.net)" : "\(result.net)")
-                    .foregroundStyle(result.net >= 0 ? .green : .red)
+                    .foregroundStyle(result.net >= 0 ? Theme.textPrimary : Theme.suitRed)
+                    .monospacedDigit()
             }
+            .listRowBackground(Theme.surface)
         }
+        .themedScreen()
         .navigationTitle("Night Details")
     }
 }

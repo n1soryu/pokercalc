@@ -31,18 +31,20 @@ struct HandRankingsView: View {
                                 }
                             }
                             Text(ranking.definition)
-                                .font(.subheadline)
-                                .foregroundStyle(.secondary)
+                                .font(.system(.title3, design: .rounded))
+                                .foregroundStyle(Theme.textSecondary)
                         }
-                        .padding(.vertical, 4)
+                        .padding()
+                        .panel()
                     }
                     Text("Same hand type? Compare the highest card, then the next, and so on. Suits never break ties. You only ever use your best five cards.")
                         .font(.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Theme.textSecondary)
                         .padding(.top, 8)
                 }
                 .padding()
             }
+            .themedScreen()
             .navigationTitle("Hand Rankings")
         }
     }

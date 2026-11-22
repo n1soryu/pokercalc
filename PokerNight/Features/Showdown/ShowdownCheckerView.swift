@@ -69,7 +69,7 @@ struct ShowdownCheckerView: View {
                             )
                         }
                         .padding()
-                        .background(.secondary.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+                        .panel()
                     }
 
                     Button {
@@ -77,6 +77,7 @@ struct ShowdownCheckerView: View {
                     } label: {
                         Label("Add player", systemImage: "plus")
                     }
+                    .buttonStyle(ThemedButtonStyle(kind: .outline))
 
                     if let result {
                         ResultPanel(result: result)
@@ -90,15 +91,18 @@ struct ShowdownCheckerView: View {
                         ]
                     }
                     .frame(maxWidth: .infinity, alignment: .trailing)
+                    .buttonStyle(ThemedButtonStyle(kind: .quiet))
                 }
                 .padding()
             }
+            .themedScreen()
             .navigationTitle("Showdown Checker")
             .sheet(item: $selectedSlot) { slot in
                 CardPickerView(usedCards: usedCards) { card in
                     assign(card, to: slot)
                     selectedSlot = nil
                 }
+                .themedSheet()
             }
         }
     }
@@ -129,11 +133,11 @@ struct ShowdownCheckerView: View {
                         onTap(index)
                     } label: {
                         RoundedRectangle(cornerRadius: 8)
-                            .stroke(.secondary, style: StrokeStyle(lineWidth: 1, dash: [5]))
+                            .stroke(Theme.textSecondary, style: StrokeStyle(lineWidth: 1, dash: [5]))
                             .frame(width: 52, height: 72)
                             .overlay {
                                 Image(systemName: "plus")
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Theme.textSecondary)
                             }
                     }
                     .accessibilityLabel(placeholder)
@@ -196,6 +200,7 @@ private struct CardPickerView: View {
                 }
                 .padding()
             }
+            .themedScreen()
             .navigationTitle("Pick a card")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -215,10 +220,11 @@ private struct ResultPanel: View {
                 .font(.title2.bold())
             Text(result.explanation)
                 .font(.headline)
+                .foregroundStyle(Theme.textPrimary)
             if result.isIncompleteBoard {
                 Text("If the hand ended now")
                     .font(.subheadline)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Theme.textSecondary)
             }
             ForEach(result.rankedPlayers) { player in
                 VStack(alignment: .leading, spacing: 4) {
@@ -232,7 +238,7 @@ private struct ResultPanel: View {
                                 .overlay {
                                     RoundedRectangle(cornerRadius: 8)
                                         .stroke(
-                                            player.holeCardsInBestFive.contains(card) ? .blue : .green,
+                                            player.holeCardsInBestFive.contains(card) ? Theme.textPrimary : Theme.textSecondary,
                                             lineWidth: 2
                                         )
                                 }
@@ -247,6 +253,6 @@ private struct ResultPanel: View {
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(.green.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
+        .background(Theme.accent, in: RoundedRectangle(cornerRadius: 14))
     }
 }

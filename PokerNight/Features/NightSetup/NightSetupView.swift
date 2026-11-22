@@ -21,17 +21,23 @@ struct NightSetupView: View {
                         Toggle(player.name, isOn: Binding(get: { selected.contains(player.id) }, set: { isOn in
                             if isOn { selected.insert(player.id) } else { selected.remove(player.id) }
                         }))
+                        .listRowBackground(Theme.surface)
                     }
                     if roster.isEmpty {
                         Text("Add players first.")
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Theme.textSecondary)
+                            .listRowBackground(Theme.surface)
                     }
                 }
                 Section("Night") {
                     Stepper("Starting stack: \(startingStack)", value: $startingStack, in: 1...10000)
+                        .listRowBackground(Theme.surface)
                     Stepper("Small blind: \(smallBlind)", value: $smallBlind, in: 1...1000)
+                        .listRowBackground(Theme.surface)
                     Stepper("Big blind: \(bigBlind)", value: $bigBlind, in: smallBlind...2000)
+                        .listRowBackground(Theme.surface)
                     Toggle("Allow rebuys", isOn: $rebuysAllowed)
+                        .listRowBackground(Theme.surface)
                 }
                 Section {
                     Button("Start night") {
@@ -46,8 +52,11 @@ struct NightSetupView: View {
                         dismiss()
                     }
                     .disabled(selected.count < 2)
+                    .buttonStyle(ThemedButtonStyle(kind: .strong))
+                    .listRowBackground(Theme.surface)
                 }
             }
+            .themedScreen()
             .navigationTitle("New Night")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
         }

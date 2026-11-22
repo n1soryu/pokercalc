@@ -18,7 +18,7 @@
 
 **Deviations from this plan** (append one line per deviation: date, phase, what changed, why):
 
-- (none yet)
+- Theme pass added after Phase N.
 
 **Open questions** (append; remove when answered):
 
@@ -396,6 +396,15 @@ public func replay(_ setup: HandSetup, _ events: [HandEvent]) throws -> HandStat
 - **New night:** pick players from the roster or add new ones inline, drag to set seat order, starting stack (default 200), blinds (default 1/2), rebuys toggle, first dealer (pick or random).
 - **End night:** each player's net sorted best to worst, saves a `Night`, deletes the active-night file.
 - **Past nights:** list by date showing the top result; a detail view with every player's net.
+
+### 8.0 Visual theme
+
+- Use `PokerNight/Shared/Theme/Theme.swift` as the only source of app colors.
+- Semantic tokens: background `#2d2327`, surface `#45364b`, accent `#62466b`, text primary `#b5c2b7`, text secondary `#8c93a8`, and suit red `#e39a9a`.
+- Contrast rules: textPrimary is the global text/icon/tint color; never use accent for text or icons. TextSecondary is for borders/dividers and, on surface or accent, only 18pt+ regular or 14pt+ bold text. TextPrimary on accent uses semibold or larger text.
+- Reusable styles: `.themedScreen()`, `.themedSheet()`, `.panel()`, and `ThemedButtonStyle(kind:)` with primary, strong, outline, destructive, and quiet kinds.
+- The app is forced dark, uses rounded font design app-wide, and forces monospaced digits for stacks, bets, pots, and amounts.
+- No raw hex values or hardcoded SwiftUI colors outside `Theme.swift`; use semantic Theme tokens for every app visual.
 
 ---
 

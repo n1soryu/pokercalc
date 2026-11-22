@@ -17,13 +17,18 @@ struct PlayersView: View {
                         context.insert(Player(name: name))
                         newName = ""
                     }
+                    .buttonStyle(ThemedButtonStyle(kind: .primary))
                 }
+                .listRowBackground(Theme.surface)
             }
             ForEach(players) { player in
                 TextField("Name", text: Binding(get: { player.name }, set: { player.name = $0 }))
+                    .listRowBackground(Theme.surface)
             }
             .onDelete { offsets in offsets.map { players[$0] }.forEach(context.delete) }
+            .tint(Theme.suitRed)
         }
+        .themedScreen()
         .navigationTitle("Players")
     }
 }

@@ -11,12 +11,12 @@ struct CardView: View {
             Text(card.suit.symbol)
                 .font(.title2)
         }
-        .foregroundStyle(card.suit == .hearts || card.suit == .diamonds ? .red : .primary)
+        .foregroundStyle(card.suit == .hearts || card.suit == .diamonds ? Theme.suitRed : Theme.textPrimary)
         .frame(width: 52, height: 72)
-        .background(.background, in: RoundedRectangle(cornerRadius: 8))
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: 8))
         .overlay {
             RoundedRectangle(cornerRadius: 8)
-                .stroke(.secondary, lineWidth: 1)
+                .stroke(Theme.textSecondary, lineWidth: 1)
         }
     }
 }

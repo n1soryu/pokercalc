@@ -9,6 +9,9 @@ struct PokerNightApp: App {
         WindowGroup {
             HomeView()
                 .environment(appModel)
+                .preferredColorScheme(.dark)
+                .tint(Theme.textPrimary)
+                .fontDesign(.rounded)
         }
         .modelContainer(for: [Player.self, Night.self])
     }
@@ -34,20 +37,24 @@ private struct HomeView: View {
                     }
                     Button("New night") { showingNewNight = true }
                 }
+                .listRowBackground(Theme.surface)
                 Section {
                     NavigationLink("Past nights") { HistoryView() }
                     NavigationLink("Players") { PlayersView() }
                     Button("Hand rankings") { showingRankings = true }
                     Button("Showdown checker") { showingChecker = true }
                 }
+                .listRowBackground(Theme.surface)
             }
+            .themedScreen()
             .navigationTitle("Poker Night")
-            .sheet(isPresented: $showingChecker) { ShowdownCheckerView() }
-            .sheet(isPresented: $showingRankings) { HandRankingsView() }
+            .sheet(isPresented: $showingChecker) { ShowdownCheckerView().themedSheet() }
+            .sheet(isPresented: $showingRankings) { HandRankingsView().themedSheet() }
             .sheet(isPresented: $showingNewNight) {
                 NightSetupView { session in
                     appModel.start(session)
                 }
+                .themedSheet()
             }
         }
     }
