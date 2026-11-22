@@ -30,6 +30,9 @@
 - Apple Development Team ID: `ZMY7V3G25Z`
 - Bundle ID: `com.uzayer.pokernight`
 - Xcode version used: `Xcode 27.2 (build 27B52)`
+- Latest theme commit: `d7d65eb` — plain black, red, and white theme
+- Current implementation: Phases 0–6 are complete and committed
+- Verification: all 34 PokerCore tests pass; the iOS Simulator build succeeds
 
 ---
 
