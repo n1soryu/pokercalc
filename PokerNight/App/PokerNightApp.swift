@@ -11,27 +11,31 @@ struct PokerNightApp: App {
 }
 
 private struct HomeView: View {
-    private let sampleCards = [
-        Card(rank: .ace, suit: .spades),
-        Card(rank: .king, suit: .hearts),
-        Card(rank: .ten, suit: .diamonds)
-    ]
+    @State private var showingChecker = false
+    @State private var showingRankings = false
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
+            VStack(spacing: 16) {
                 Text("Poker Night")
                     .font(.largeTitle.bold())
-                HStack(spacing: 12) {
-                    ForEach(sampleCards, id: \.self) { card in
-                        CardView(card: card)
-                    }
+                Button("Showdown checker") {
+                    showingChecker = true
                 }
-                Text("Your table starts here.")
-                    .foregroundStyle(.secondary)
+                .buttonStyle(.borderedProminent)
+                Button("Hand rankings") {
+                    showingRankings = true
+                }
+                .buttonStyle(.bordered)
             }
             .padding()
             .navigationTitle("Poker Night")
+            .sheet(isPresented: $showingChecker) {
+                ShowdownCheckerView()
+            }
+            .sheet(isPresented: $showingRankings) {
+                HandRankingsView()
+            }
         }
     }
 }
