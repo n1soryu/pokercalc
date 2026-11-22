@@ -6,15 +6,15 @@
 
 ## 1. Status
 
-**Current phase:** Phase 5 (not started)
+**Current phase:** Complete
 
 - [x] Phase 0: Environment, Xcode project (XcodeGen), PokerCore package, cards, git
 - [x] Phase 1: Hand evaluator and explanations (PokerCore)
 - [x] Phase 2: Showdown checker and hand rankings UI
 - [x] Phase 3: Betting engine (PokerCore)
 - [x] Phase 4: Table session (PokerCore)
-- [ ] Phase 5: Table UI
-- [ ] Phase 6: Roster, night setup, history
+- [x] Phase 5: Table UI
+- [x] Phase 6: Roster, night setup, history
 
 **Deviations from this plan** (append one line per deviation: date, phase, what changed, why):
 
