@@ -9,9 +9,29 @@ struct NightSetupView: View {
     let onStart: (TableSession) -> Void
     @State private var selected = Set<UUID>()
     @State private var startingStack = 10
+    @State private var startingStackText = "10"
     @State private var smallBlind = 1
     @State private var bigBlind = 2
     @State private var rebuysAllowed = false
+
+    private var startingStackBinding: Binding<Int> {
+        Binding(
+            get: { startingStack },
+            set: { value in
+                startingStack = value
+                startingStackText = String(value)
+            }
+        )
+    }
+
+    private var normalizedStartingStack: Int {
+        min(10000, max(10, Int(startingStackText) ?? startingStack))
+    }
+
+    private func normalizeStartingStack() {
+        startingStack = normalizedStartingStack
+        startingStackText = String(startingStack)
+    }
 
     var body: some View {
         NavigationStack {
@@ -30,7 +50,22 @@ struct NightSetupView: View {
                     }
                 }
                 Section("Night") {
-                    Stepper("Starting stack: \(startingStack)", value: $startingStack, in: 10...10000, step: 10)
+                    HStack {
+                        Text("Starting stack")
+                        Spacer()
+                        TextField("Starting stack", text: $startingStackText)
+                            .keyboardType(.numberPad)
+                            .multilineTextAlignment(.trailing)
+                            .frame(width: 120)
+                            .onSubmit(normalizeStartingStack)
+                            .onChange(of: startingStackText) { _, value in
+                                if let value = Int(value), (10...10000).contains(value) {
+                                    startingStack = value
+                                }
+                            }
+                    }
+                    .listRowBackground(Theme.surface)
+                    Stepper("Adjust by 10", value: startingStackBinding, in: 10...10000, step: 10)
                         .listRowBackground(Theme.surface)
                     Stepper("Small blind: \(smallBlind)", value: $smallBlind, in: 1...1000)
                         .listRowBackground(Theme.surface)
@@ -41,6 +76,7 @@ struct NightSetupView: View {
                 }
                 Section {
                     Button("Start night") {
+                        normalizeStartingStack()
                         let players = roster.filter { selected.contains($0.id) }
                         guard players.count >= 2, let session = try? TableSession(
                             seats: players.map { SessionSeat(id: $0.id, name: $0.name, stack: startingStack) },

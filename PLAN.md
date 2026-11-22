@@ -21,6 +21,7 @@
 - Theme pass added after Phase N.
 - Theme: replaced custom palette with plain black, red, and white; navigation titles remain inline to prevent overlap.
 - 2026-11-22: Major tweak — default starting stack changed to 10, with 10-point setup increments and ±10/±100/±1000 raise controls.
+- 2026-11-22: Starting stack setup supports direct numeric entry with a 10-point stepper and a 10–10000 valid range.
 
 **Open questions** (append; remove when answered):
 
