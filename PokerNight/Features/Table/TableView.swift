@@ -108,33 +108,40 @@ struct TableView: View {
         }
     }
 
+    @ViewBuilder
     private var actionBar: some View {
         VStack(spacing: 10) {
-            HStack {
-                if controller.legal.canCheck {
-                    Button("Check") { controller.apply(.check) }
-                        .buttonStyle(ThemedButtonStyle(kind: .primary))
-                } else {
-                    Button("Call \(controller.legal.callAmount)") { controller.apply(.call) }
-                        .buttonStyle(ThemedButtonStyle(kind: .primary))
-                }
-                Button("Fold") { controller.apply(.fold) }
-                    .buttonStyle(ThemedButtonStyle(kind: .outline))
-            }
-            HStack {
-                if controller.legal.minRaiseTo != nil {
-                    Button("Bet / Raise") {
-                        raiseAmount = controller.legal.minRaiseTo ?? controller.legal.maxRaiseTo
-                        showingRaise = true
-                    }
+            if let state = controller.state,
+               state.street == .complete {
+                Button("Start next hand") { controller.startHand() }
                     .buttonStyle(ThemedButtonStyle(kind: .strong))
+            } else if controller.state?.street != .showdown {
+                HStack {
+                    if controller.legal.canCheck || controller.legal.callAmount == 0 {
+                        Button("Check") { controller.apply(.check) }
+                            .buttonStyle(ThemedButtonStyle(kind: .primary))
+                    } else {
+                        Button("Call \(controller.legal.callAmount)") { controller.apply(.call) }
+                            .buttonStyle(ThemedButtonStyle(kind: .primary))
+                    }
+                    Button("Fold") { controller.apply(.fold) }
+                        .buttonStyle(ThemedButtonStyle(kind: .outline))
                 }
-                Button("All-in") { controller.apply(.allIn) }
-                    .buttonStyle(ThemedButtonStyle(kind: .destructive))
+                HStack {
+                    if controller.legal.minRaiseTo != nil {
+                        Button("Bet / Raise") {
+                            raiseAmount = controller.legal.minRaiseTo ?? controller.legal.maxRaiseTo
+                            showingRaise = true
+                        }
+                        .buttonStyle(ThemedButtonStyle(kind: .strong))
+                    }
+                    Button("All-in") { controller.apply(.allIn) }
+                        .buttonStyle(ThemedButtonStyle(kind: .destructive))
+                }
+                Button("Undo") { controller.undo() }
+                    .buttonStyle(ThemedButtonStyle(kind: .quiet))
+                    .disabled(controller.session.currentHand?.events.isEmpty ?? true)
             }
-            Button("Undo") { controller.undo() }
-                .buttonStyle(ThemedButtonStyle(kind: .quiet))
-                .disabled(controller.session.currentHand?.events.isEmpty ?? true)
         }
     }
 
