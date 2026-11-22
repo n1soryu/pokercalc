@@ -6,12 +6,12 @@
 
 ## 1. Status
 
-**Current phase:** Phase 3 (not started)
+**Current phase:** Phase 4 (not started)
 
 - [x] Phase 0: Environment, Xcode project (XcodeGen), PokerCore package, cards, git
 - [x] Phase 1: Hand evaluator and explanations (PokerCore)
 - [x] Phase 2: Showdown checker and hand rankings UI
-- [ ] Phase 3: Betting engine (PokerCore)
+- [x] Phase 3: Betting engine (PokerCore)
 - [ ] Phase 4: Table session (PokerCore)
 - [ ] Phase 5: Table UI
 - [ ] Phase 6: Roster, night setup, history
