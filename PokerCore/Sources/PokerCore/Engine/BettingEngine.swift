@@ -3,6 +3,7 @@ import Foundation
 /// Replays hand events into a deterministic state.
 public func replay(_ setup: HandSetup, _ events: [HandEvent]) throws -> HandState {
     var state = try initialState(setup)
+    assertPointConservation(state)
     for event in events {
         state = try apply(event, to: state)
     }
@@ -44,6 +45,7 @@ public func apply(_ event: HandEvent, to original: HandState) throws -> HandStat
     case let .award(potIndex, winners):
         try award(potIndex: potIndex, winners: winners, in: &state)
     }
+    assertPointConservation(state)
     return state
 }
 
@@ -298,4 +300,8 @@ private func seatOrderStartingLeftOfButton(_ state: HandState) -> [UUID: Int] {
         order[state.seats[index].id] = offset
     }
     return order
+}
+
+private func assertPointConservation(_ state: HandState) {
+    assert(state.isPointConserved, "PokerNight hand point conservation failed")
 }

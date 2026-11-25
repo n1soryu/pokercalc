@@ -113,6 +113,20 @@ struct AppModelTests {
         #expect(night.startingStack == nil)
     }
 
+    @Test func failedHistorySaveKeepsTheActiveNightRecoverable() throws {
+        defer { try? FileManager.default.removeItem(at: store.url.deletingLastPathComponent()) }
+        let context = try makeContext()
+        let model = AppModel(store: store) { _, _ in
+            throw CocoaError(.fileWriteNoPermission)
+        }
+        try model.start(session())
+        #expect(throws: CocoaError.self) { try model.endNight(context: context) }
+        #expect(model.activeController != nil)
+        #expect(model.hasActiveNight)
+        #expect(store.exists)
+        #expect(try context.fetchCount(FetchDescriptor<Night>()) == 0)
+    }
+
     private func session() throws -> TableSession {
         try TableSession(seats: [SessionSeat(name: "A", stack: 10), SessionSeat(name: "B", stack: 10)],
                          rebuysAllowed: true, startingStack: 10)

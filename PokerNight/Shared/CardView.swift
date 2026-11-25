@@ -18,5 +18,7 @@ struct CardView: View {
             RoundedRectangle(cornerRadius: 8)
                 .stroke(Theme.textSecondary, lineWidth: 1)
         }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(card.rank.name) of \(card.suit.rawValue)")
     }
 }

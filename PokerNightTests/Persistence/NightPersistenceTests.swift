@@ -45,6 +45,20 @@ struct NightPersistenceTests {
         #expect(try store.load() == session)
     }
 
+    @Test func unbalancedButDecodableSaveIsTreatedAsCorrupt() throws {
+        let store = temporaryStore()
+        defer { try? FileManager.default.removeItem(at: store.url.deletingLastPathComponent()) }
+        let session = try TableSession(seats: [SessionSeat(name: "A", stack: 10), SessionSeat(name: "B", stack: 10)])
+        var object = try #require(JSONSerialization.jsonObject(with: JSONEncoder().encode(session)) as? [String: Any])
+        var seats = try #require(object["seats"] as? [[String: Any]])
+        seats[0]["stack"] = 11
+        object["seats"] = seats
+        try FileManager.default.createDirectory(at: store.url.deletingLastPathComponent(), withIntermediateDirectories: true)
+        try JSONSerialization.data(withJSONObject: object).write(to: store.url)
+        #expect(throws: ActiveNightError.corrupt) { try store.load() }
+        #expect(store.exists)
+    }
+
     @Test func resultsSortByNetWithSeatOrderForTiesAndIncludeCashOuts() throws {
         var session = try TableSession(seats: [SessionSeat(name: "A", stack: 10), SessionSeat(name: "B", stack: 10), SessionSeat(name: "C", stack: 10)])
         #expect(NightArchive.results(for: session).map(\.name) == ["A", "B", "C"])

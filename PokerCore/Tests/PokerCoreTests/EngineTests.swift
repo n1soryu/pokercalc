@@ -100,11 +100,21 @@ struct EngineTests {
     func oddSplitGoesLeftOfButton() throws {
         let s = setup()
         var state = try replay(s, [])
+        state.seats[0].stack -= 5
+        state.seats[0].committedThisStreet += 5
+        state.seats[0].committedTotal += 5
+        state.seats[1].stack -= 5
+        state.seats[1].committedThisStreet += 5
+        state.seats[1].committedTotal += 5
         state.street = .showdown
         state.pots = [Pot(amount: 25, eligible: [a, b])]
+        #expect(state.isPointConserved)
+        let aBefore = state.seats.first(where: { $0.id == a })?.stack
+        let bBefore = state.seats.first(where: { $0.id == b })?.stack
         let awarded = try apply(.award(potIndex: 0, winners: [a, b]), to: state)
-        #expect(awarded.seats.first(where: { $0.id == b })?.stack == 208)
-        #expect(awarded.seats.first(where: { $0.id == a })?.stack == 212)
+        #expect(awarded.seats.first(where: { $0.id == b })?.stack == bBefore.map { $0 + 13 })
+        #expect(awarded.seats.first(where: { $0.id == a })?.stack == aBefore.map { $0 + 12 })
+        #expect(awarded.isPointConserved)
     }
 
     @Test

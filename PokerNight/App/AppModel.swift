@@ -13,9 +13,14 @@ final class AppModel {
     var corruptSaveMessage: String?
     var errorMessage: String?
     private let store: ActiveNightStore
+    private let archiveNight: @MainActor (TableSession, ModelContext) throws -> Void
 
-    init(store: ActiveNightStore = ActiveNightStore()) {
+    init(
+        store: ActiveNightStore = ActiveNightStore(),
+        archiveNight: @escaping @MainActor (TableSession, ModelContext) throws -> Void = AppModel.archive
+    ) {
         self.store = store
+        self.archiveNight = archiveNight
         hasSavedNight = store.exists
     }
 
@@ -63,8 +68,16 @@ final class AppModel {
     func endNight(context: ModelContext) throws {
         guard let session = activeController?.session else { throw TableSessionError.noCurrentHand }
         guard session.canEndNight else { throw TableSessionError.handInProgress }
+        try archiveNight(session, context)
+        // If removal fails, retrying uses the same archive identity, avoiding duplicates.
+        try store.remove()
+        activeController = nil
+        hasSavedNight = false
+        path = []
+    }
+
+    private static func archive(_ session: TableSession, in context: ModelContext) throws {
         guard let id = session.nightID else { throw TableSessionError.invalidSetup }
-        // A separate context makes save failure independent of unsaved roster edits.
         let archiveContext = ModelContext(context.container)
         let existing = try archiveContext.fetch(FetchDescriptor<Night>(predicate: #Predicate { $0.id == id }))
         let updated = try NightArchive.makeNight(session)
@@ -79,10 +92,5 @@ final class AppModel {
             archiveContext.insert(updated)
         }
         try archiveContext.save()
-        // If removal fails, retrying uses the same archive identity, avoiding duplicates.
-        try store.remove()
-        activeController = nil
-        hasSavedNight = false
-        path = []
     }
 }

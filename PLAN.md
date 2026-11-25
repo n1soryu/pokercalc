@@ -6,7 +6,7 @@
 
 ## 1. Status
 
-**Current phase:** Phase 7–9 — implemented, committed and pushed on 2026-11-25 at the owner's request; interactive Simulator verification and phase sign-off still pending
+**Current phase:** Phase 10 — implemented and automatically verified on 2026-11-25; interactive and owner-only release checks remain
 
 - [x] Phase 0: Environment, Xcode project (XcodeGen), PokerCore package, cards, git
 - [x] Phase 1: Hand evaluator and explanations (PokerCore)
@@ -37,6 +37,7 @@
 - 2026-11-25, Phase 9 — Owner chose “Not recorded” for the original starting stack of legacy autosaves. New sessions store the configured stack separately from buy-ins; existing history retains its saved values.
 - 2026-11-25, Phase 9 — Added a session-wide completed-hand counter because per-seat maximums undercount after complete player turnover. Legacy autosaves retain the best available per-seat count; previously unrecorded history cannot be reconstructed.
 - 2026-11-25, Phases 7–9 — Owner asked to commit and push all pending work before interactive sign-off. Because the phase changes share files, they were committed together rather than as separate phase commits; the phase checkboxes remain open until manual verification is recorded.
+- 2026-11-25, Phase 10 — Added a generated original card-and-chip icon because no source artwork existed. It uses only the project's black, white, and red palette and contains no text or third-party card art.
 
 **Open questions** (append; remove when answered):
 
@@ -48,7 +49,7 @@
 - Bundle ID: `com.uzayer.pokernight`
 - Xcode version used: `Xcode 27.2 (build 27B52)`
 - Latest theme commit: `d7d65eb` — plain black, red, and white theme
-- Current implementation: Phases 0–9 are implemented and committed. Phase 10 has not started. Phases 7–9 were committed together on 2026-11-25 at the owner's request and pushed to `origin/main`; their checkboxes remain open pending interactive Simulator sign-off.
+- Current implementation: Phases 0–10 are implemented locally. Phases 7–9 were committed together on 2026-11-25 at the owner's request and pushed to `origin/main`; their checkboxes remain open pending interactive Simulator sign-off. Phase 10 is committed locally and awaits interactive, owner-device, and delivery authorization checks.
 - Pre-Phase 7 verification on 2026-11-24: all 34 PokerCore tests pass; the iOS Simulator build succeeds without compiler warnings.
 - Phase 7 automated verification on 2026-11-24: all 38 PokerCore tests passed, including live-pot shortcuts and limits, pot totals, end-night eligibility on every street, and undo/re-award across side pots and hand boundaries. All app Swift sources type-checked for the arm64 iOS Simulator with warnings treated as errors.
 - Phase 7 build and manual verification on 2026-11-24: the Section 2 generic build was attempted. Xcode package resolution encountered restricted cache writes and, with a writable module cache, a denied manifest sandbox. CoreSimulatorService refused the connection. No interactive scenarios were verified. On a Mac with Simulator access, run the Section 2 build and Section 9 Phase 7 item 7, then record the device and outcome before checking off and committing the phase.
@@ -59,6 +60,8 @@
 - Phase 9 manual verification remains pending: interactive Simulator control is unavailable because Device hub/Agent device access is disabled for this environment. The CUA app inventory also cannot open Simulator. Verify inline add/duplicate-name errors, drag seat ordering, dealer selection/randomization, invalid stack entry, one-step start, app relaunch/one-tap resume, corrupt-save cancel/delete, review cancel/confirm, history metadata/results, and deletion cancel/confirm on an iPhone Simulator. The Phase 7, 8 and 9 checkboxes remain open until this required verification is recorded; the code was committed and pushed at the owner's request.
 - 2026-11-25 pre-push verification: all 43 PokerCore tests passed, all 18 app test methods passed (25 runs including parameterized cases) on iPhone Duo / iOS 27.1, the Section 2 generic iOS Simulator build succeeded, `xcodegen generate` regenerated the project, and `git diff --check` reported no whitespace errors.
 - 2026-11-25 delivery: `master` was pushed to `origin/main` with upstream tracking. The remote's one-line README `Initial commit` was merged into the local history first because the two histories were unrelated; no remote content was overwritten.
+- Phase 10 implementation and automated verification on 2026-11-25: active-night writes are atomic and reject unbalanced sessions; load rejects decodable-but-unbalanced saves as recoverable corruption; final-history save failures retain the active file; roster add, rename, and delete actions now show SwiftData save errors. PokerCore debug-asserts point conservation after every engine/session mutation and exposes audited point totals. Accessibility labels and state descriptions now cover cards, card-picker availability, table options, seats, blind/dealer/current-actor state, pots, winner selection, and start actions. The table and setup accommodate long names and large Dynamic Type; raise controls use a two-column grid. Added complete iPhone and App Store icon assets. Automated verification passed: 45 PokerCore tests, 20 app test methods (27 runs with parameterized cases) on iPhone Duo / iOS 27.1, generic iOS Simulator build, XcodeGen generation, asset compilation, and `git diff --check`.
+- Phase 10 interactive/release checks pending: Device hub/Agent device access is unavailable, so the clean end-to-end Simulator playtest and VoiceOver/Dynamic Type visual inspection could not run here. On a Simulator, verify the full flow from empty install through roster/setup, multiple hands, management, relaunch/resume, awards, end night, and history; repeat table, raise, setup, and history screens at accessibility text sizes with VoiceOver. For the owner’s iPhone checklist, follow Section 5: connect/unlock/trust the phone, enable Developer Mode, select it in Xcode, run, and trust the developer profile if prompted. `master` tracks `origin/main`; local commit `29eaa3d` and the planned `v1.0-game-night` tag have not been pushed or created because external Git delivery was not authorized.
 - Audit baseline commit: `9778796` — Fix: end-of-hand action bar and zero call
 - Git note: after the 2026-11-25 push, local `master` tracks `origin/main`; verify the branch is clean and pushed before calling a release complete.
 
@@ -69,7 +72,7 @@ Work in this order; the detailed definitions of done are in Section 9.
 1. **Correctness first (Phase 7):** implemented and committed; finish the manual flow checklist for pot display, live-pot shortcuts, end-night safety, and undo recorded in Section 9.
 2. **Complete the table workflow (Phase 8):** implemented and committed; manually verify blinds, rebuy, add player, cash out, between-hand guards, and the prefilled checker.
 3. **Verify setup and history (Phase 9):** implementation is committed and pushed. Finish the interactive start/resume, setup ordering/dealer, corruption recovery, end-review, and history deletion checklist recorded above, then sign off the open Phase 7–9 checkboxes.
-4. **Harden and validate (Phase 10):** persistence error handling, chip-conservation assertions, app-level tests, accessibility/Dynamic Type review, app icon, full simulator playtest, physical-device checklist, and release/tag/remote verification.
+4. **Finish release checks (Phase 10):** implementation and automated verification are complete. Run the documented interactive Simulator and owner-device checks, then authorize the final push/tag if desired before marking the release complete.
 
 ---
 

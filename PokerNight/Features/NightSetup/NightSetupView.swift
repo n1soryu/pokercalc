@@ -92,8 +92,15 @@ struct NightSetupView: View {
                     Text("Seat \((draft.seatIDs.firstIndex(of: player.id) ?? 0) + 1)")
                         .foregroundStyle(Theme.textSecondary)
                     Text(player.name)
-                    if draft.dealerID == player.id { Text("Dealer").font(.caption.bold()) }
+                        .lineLimit(2)
+                        .layoutPriority(1)
+                    if draft.dealerID == player.id {
+                        Text("Dealer")
+                            .font(.caption.bold())
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                 }
+                .accessibilityElement(children: .combine)
             }
             .onMove { source, destination in draft.seatIDs.move(fromOffsets: source, toOffset: destination) }
             if !selectedPlayers.isEmpty {
@@ -116,7 +123,7 @@ struct NightSetupView: View {
             let player = Player(name: name)
             context.insert(player)
             do { try context.save() }
-            catch { context.delete(player); throw error }
+            catch { context.rollback(); throw error }
             draft.select(player.id, isSelected: true)
             newName = ""
         } catch { errorMessage = error.localizedDescription }

@@ -117,4 +117,25 @@ public struct HandState: Sendable, Equatable {
 
     var actedSinceRaise: Set<UUID>
     var awardedPotIndices: Set<Int>
+
+    /// Whether the hand has preserved all of the points present when it began.
+    public var isPointConserved: Bool {
+        let starting = setup.seats.reduce(into: 0) { total, seat in total += seat.stack }
+        let stacks = seats.reduce(into: 0) { total, seat in total += seat.stack }
+        return starting == stacks + liveCommittedPoints
+    }
+
+    /// Points no longer in player stacks but not yet awarded back to a stack.
+    public var liveCommittedPoints: Int {
+        switch street {
+        case .preflop, .flop, .turn, .river:
+            seats.reduce(into: 0) { total, seat in total += seat.committedTotal }
+        case .showdown:
+            pots.indices.filter { !awardedPotIndices.contains($0) }.reduce(into: 0) { total, index in
+                total += pots[index].amount
+            }
+        case .complete:
+            0
+        }
+    }
 }

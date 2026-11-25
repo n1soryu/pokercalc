@@ -48,6 +48,8 @@ struct TableView: View {
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
+                .accessibilityLabel("Table options")
+                .accessibilityHint("Open showdown, table management, and end-night options.")
             }
         }
         .sheet(item: $checker) { request in
@@ -99,6 +101,7 @@ struct TableView: View {
             .monospacedDigit()
             .padding()
             .panel()
+            .accessibilityElement(children: .combine)
         }
     }
 
@@ -110,6 +113,7 @@ struct TableView: View {
             Button(title) { controller.startHand() }
                 .buttonStyle(ThemedButtonStyle(kind: .strong))
                 .disabled(!controller.session.canStartHand)
+                .accessibilityHint(controller.session.canStartHand ? "Starts the next hand." : "At least two players need points to start a hand.")
         }
     }
 
@@ -236,6 +240,8 @@ private struct AwardPanel: View {
                         }
                     }
                     .buttonStyle(ThemedButtonStyle(kind: winners.contains(id) ? .primary : .outline))
+                    .accessibilityLabel("\(seat.name), \(winners.contains(id) ? "selected winner" : "eligible winner")")
+                    .accessibilityHint("Double tap to \(winners.contains(id) ? "remove" : "select") \(seat.name) as a winner of this pot.")
                 }
             }
             Button("Confirm winners") {
@@ -258,24 +264,26 @@ private struct SeatRow: View {
     let isActor: Bool
 
     var body: some View {
-        HStack {
+        HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading) {
                 Text(seat.name)
                     .font(.headline)
                     .foregroundStyle(Theme.textPrimary)
+                    .lineLimit(2)
+                    .layoutPriority(1)
                 Text("Bet \(seat.committedThisStreet) · Total \(seat.committedTotal)")
                     .font(.caption.monospacedDigit())
                     .foregroundStyle(Theme.textPrimary)
             }
             Spacer()
-            HStack(spacing: 6) {
-                badgeText
+            VStack(alignment: .trailing, spacing: 6) {
+                HStack(spacing: 6) { badgeText }
+                Text("\(seat.stack)")
+                    .font(.title3.monospacedDigit())
+                    .foregroundStyle(Theme.textPrimary)
+                if seat.status == .folded { Text("FOLD").foregroundStyle(Theme.textSecondary) }
+                if seat.status == .allIn { Text("ALL IN").foregroundStyle(Theme.suitRed).fontWeight(.semibold) }
             }
-            Text("\(seat.stack)")
-                .font(.title3.monospacedDigit())
-                .foregroundStyle(Theme.textPrimary)
-            if seat.status == .folded { Text("FOLD").foregroundStyle(Theme.textSecondary) }
-            if seat.status == .allIn { Text("ALL IN").foregroundStyle(Theme.suitRed).fontWeight(.semibold) }
         }
         .padding()
         .background(isActor ? Theme.accent : Theme.surface, in: RoundedRectangle(cornerRadius: 14))
@@ -284,6 +292,8 @@ private struct SeatRow: View {
                 .stroke(isActor ? Theme.textPrimary : Theme.textSecondary.opacity(0.25), lineWidth: isActor ? 2 : 1)
         )
         .opacity(seat.status == .folded ? 0.4 : 1)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(accessibilityDescription)
     }
 
     @ViewBuilder
@@ -319,6 +329,16 @@ private struct SeatRow: View {
         if seatIndex == bigBlindIndex { return "BB" }
         return nil
     }
+
+    private var accessibilityDescription: String {
+        var details = [seat.name, "stack \(seat.stack)", "bet this street \(seat.committedThisStreet)", "total committed \(seat.committedTotal)"]
+        if seatIndex == state.setup.buttonIndex { details.append("dealer") }
+        if let blindBadge { details.append(blindBadge == "SB" ? "small blind" : "big blind") }
+        if isActor { details.append("current actor") }
+        if seat.status == .folded { details.append("folded") }
+        if seat.status == .allIn { details.append("all in") }
+        return details.joined(separator: ", ")
+    }
 }
 
 private struct PotsView: View {
@@ -343,6 +363,8 @@ private struct PotsView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .panel()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Pot \(state.potTotal) points")
     }
 }
 
@@ -355,16 +377,15 @@ private struct RaiseView: View {
 
     var body: some View {
         NavigationStack {
+            ScrollView {
             VStack(spacing: 24) {
                 Text("Raise to \(amount)").font(.title.bold())
                 Stepper("Amount", value: $amount, in: range, step: 10)
                     .tint(Theme.textPrimary)
-                HStack {
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                     Button("-10") { amount = max(range.lowerBound, amount - 10) }.buttonStyle(ThemedButtonStyle(kind: .outline))
                     Button("-100") { amount = max(range.lowerBound, amount - 100) }.buttonStyle(ThemedButtonStyle(kind: .outline))
                     Button("-1000") { amount = max(range.lowerBound, amount - 1000) }.buttonStyle(ThemedButtonStyle(kind: .outline))
-                }
-                HStack {
                     Button("+10") { amount = amount + min(10, range.upperBound - amount) }.buttonStyle(ThemedButtonStyle(kind: .outline))
                     Button("+100") { amount = amount + min(100, range.upperBound - amount) }.buttonStyle(ThemedButtonStyle(kind: .outline))
                     Button("+1000") { amount = amount + min(1000, range.upperBound - amount) }.buttonStyle(ThemedButtonStyle(kind: .outline))
@@ -376,11 +397,9 @@ private struct RaiseView: View {
                     ), in: Double(range.lowerBound)...Double(range.upperBound))
                     .tint(Theme.textPrimary)
                 }
-                HStack {
+                LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
                     Button("Min") { amount = range.lowerBound }.buttonStyle(ThemedButtonStyle(kind: .outline))
                     Button("Half pot") { amount = targets.halfPot }.buttonStyle(ThemedButtonStyle(kind: .outline))
-                }
-                HStack {
                     Button("Pot") { amount = targets.pot }.buttonStyle(ThemedButtonStyle(kind: .outline))
                     Button("All-in") { amount = range.upperBound }.buttonStyle(ThemedButtonStyle(kind: .outline))
                 }
@@ -388,6 +407,7 @@ private struct RaiseView: View {
                     .buttonStyle(ThemedButtonStyle(kind: .strong))
             }
             .padding()
+            }
             .navigationTitle("Bet / Raise")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

@@ -196,6 +196,9 @@ private struct CardPickerView: View {
                                     .opacity(usedCards.contains(card) ? 0.3 : 1)
                             }
                             .disabled(usedCards.contains(card))
+                            .accessibilityLabel("\(rank.name) of \(suit.rawValue)")
+                            .accessibilityValue(usedCards.contains(card) ? "Already used" : "Available")
+                            .accessibilityHint(usedCards.contains(card) ? "Unavailable because this card is already in the hand." : "Double tap to place this card in the selected slot.")
                         }
                     }
                 }
