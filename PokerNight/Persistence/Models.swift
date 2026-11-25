@@ -20,13 +20,13 @@ final class Night {
     var date: Date
     var smallBlind: Int
     var bigBlind: Int
-    var startingStack: Int
+    var startingStack: Int?
     var rebuysAllowed: Bool
     var handsPlayed: Int
     var resultsData: Data
 
-    init(date: Date = Date(), smallBlind: Int, bigBlind: Int, startingStack: Int, rebuysAllowed: Bool, handsPlayed: Int, resultsData: Data) {
-        self.id = UUID()
+    init(id: UUID = UUID(), date: Date = Date(), smallBlind: Int, bigBlind: Int, startingStack: Int?, rebuysAllowed: Bool, handsPlayed: Int, resultsData: Data) {
+        self.id = id
         self.date = date
         self.smallBlind = smallBlind
         self.bigBlind = bigBlind

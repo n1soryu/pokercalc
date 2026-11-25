@@ -45,6 +45,10 @@ public struct CurrentHand: Codable, Sendable, Equatable {
 
 /// The complete state of a poker night.
 public struct TableSession: Codable, Sendable, Equatable {
+    /// Stable archive identity; absent in autosaves created before Phase 9.
+    public var nightID: UUID?
+    /// Configured initial stack, or nil when an older save did not record it.
+    public private(set) var startingStack: Int?
     public private(set) var seats: [SessionSeat]
     public private(set) var smallBlind: Int
     public private(set) var bigBlind: Int
@@ -52,7 +56,55 @@ public struct TableSession: Codable, Sendable, Equatable {
     public private(set) var rebuysAllowed: Bool
     public private(set) var currentHand: CurrentHand?
 
+    // Optional so sessions saved before table management still decode.
+    private var betweenHandEdits: [BetweenHandEdit]?
+    private var completedHands: Int?
     private var hasStarted: Bool
+
+    /// Completed hands for the entire night; older saves use the best recorded seat count.
+    public var handsPlayed: Int { completedHands ?? seats.map(\.handsPlayed).max() ?? 0 }
+
+    /// The most recent table edit that Undo will reverse before reopening a completed hand.
+    public var lastTableEdit: String? { betweenHandEdits?.last?.label }
+
+    private enum BetweenHandEdit: Codable, Equatable, Sendable {
+        case blinds(Int, Int)
+        case rebuy(SessionSeat)
+        case cashOut(SessionSeat)
+        case addPlayer(UUID)
+
+        var label: String {
+            switch self {
+            case .blinds: return "blind change"
+            case .rebuy: return "rebuy"
+            case .cashOut: return "cash out"
+            case .addPlayer: return "added player"
+            }
+        }
+    }
+
+    private mutating func recordEdit(_ edit: BetweenHandEdit) {
+        guard currentHand != nil else { return }
+        if betweenHandEdits == nil { betweenHandEdits = [] }
+        betweenHandEdits?.append(edit)
+    }
+
+    private func canAcceptBuyIn(_ amount: Int) -> Bool {
+        guard amount > 0 else { return false }
+        var remaining = Int.max - amount
+        for seat in seats {
+            guard seat.totalBuyIn <= remaining else { return false }
+            remaining -= seat.totalBuyIn
+        }
+        return true
+    }
+
+    private var eligibleSeats: [SessionSeat] {
+        seats.filter { $0.stack > 0 && $0.cashedOut == nil && !$0.sittingOut }
+    }
+
+    /// Whether the table is between hands with at least two eligible players.
+    public var canStartHand: Bool { canEndNight && eligibleSeats.count >= 2 }
 
     /// Creates a session before the first hand.
     public init(
@@ -60,7 +112,8 @@ public struct TableSession: Codable, Sendable, Equatable {
         smallBlind: Int = 1,
         bigBlind: Int = 2,
         buttonIndex: Int = 0,
-        rebuysAllowed: Bool = false
+        rebuysAllowed: Bool = false,
+        startingStack: Int? = nil
     ) throws {
         guard seats.count >= 2,
               seats.indices.contains(buttonIndex),
@@ -68,12 +121,15 @@ public struct TableSession: Codable, Sendable, Equatable {
               bigBlind >= smallBlind else {
             throw TableSessionError.invalidSetup
         }
+        self.nightID = UUID()
+        self.startingStack = startingStack
         self.seats = seats
         self.smallBlind = smallBlind
         self.bigBlind = bigBlind
         self.buttonIndex = buttonIndex
         self.rebuysAllowed = rebuysAllowed
         self.currentHand = nil
+        self.completedHands = 0
         self.hasStarted = false
     }
 
@@ -82,6 +138,12 @@ public struct TableSession: Codable, Sendable, Equatable {
         guard let currentHand else { return nil }
         return try? replay(currentHand.setup, currentHand.events)
     }
+
+    /// Whether final results can be recorded with no unfinished hand.
+    public var canEndNight: Bool { currentHand == nil || currentState?.street == .complete }
+
+    /// Whether the current hand has an event to undo.
+    public var canUndo: Bool { currentHand?.events.isEmpty == false }
 
     /// Starts the next hand and advances the button past busted seats.
     public mutating func startNextHand() throws {
@@ -92,7 +154,7 @@ public struct TableSession: Codable, Sendable, Equatable {
         }
         let nextButton = hasStarted ? nextSeatWithChips(after: buttonIndex) : seatWithChips(at: buttonIndex)
         guard let nextButton else { throw TableSessionError.notEnoughPlayers }
-        let activeSeats = seats.filter { $0.stack > 0 && $0.cashedOut == nil && !$0.sittingOut }
+        let activeSeats = eligibleSeats
         guard activeSeats.count >= 2 else { throw TableSessionError.notEnoughPlayers }
         guard let activeButton = activeSeats.firstIndex(where: { $0.id == seats[nextButton].id }) else {
             throw TableSessionError.notEnoughPlayers
@@ -109,6 +171,7 @@ public struct TableSession: Codable, Sendable, Equatable {
                 bigBlind: bigBlind
             )
         )
+        betweenHandEdits = nil
         buttonIndex = nextButton
         hasStarted = true
     }
@@ -123,9 +186,24 @@ public struct TableSession: Codable, Sendable, Equatable {
         synchronize(with: oldState, newState: newState)
     }
 
-    /// Removes the most recent event from the current hand.
+    /// Reverses later table edits first, then the most recent event in the current hand.
     public mutating func undo() throws {
         guard var currentHand, !currentHand.events.isEmpty else { throw TableSessionError.nothingToUndo }
+        if let edit = betweenHandEdits?.popLast() {
+            switch edit {
+            case let .blinds(small, big):
+                smallBlind = small
+                bigBlind = big
+            case let .rebuy(previous), let .cashOut(previous):
+                if let index = seats.firstIndex(where: { $0.id == previous.id }) {
+                    seats[index] = previous
+                }
+            case let .addPlayer(id):
+                seats.removeAll { $0.id == id }
+            }
+            if betweenHandEdits?.isEmpty == true { betweenHandEdits = nil }
+            return
+        }
         let oldState = try replay(currentHand.setup, currentHand.events)
         currentHand.events.removeLast()
         let newState = try replay(currentHand.setup, currentHand.events)
@@ -137,6 +215,7 @@ public struct TableSession: Codable, Sendable, Equatable {
     public mutating func setBlinds(smallBlind: Int, bigBlind: Int) throws {
         try requireBetweenHands()
         guard smallBlind > 0, bigBlind >= smallBlind else { throw TableSessionError.invalidBlinds }
+        recordEdit(.blinds(self.smallBlind, self.bigBlind))
         self.smallBlind = smallBlind
         self.bigBlind = bigBlind
     }
@@ -145,10 +224,11 @@ public struct TableSession: Codable, Sendable, Equatable {
     @discardableResult
     public mutating func addPlayer(name: String, buyIn: Int) throws -> UUID {
         try requireBetweenHands()
-        guard buyIn > 0, !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+        guard canAcceptBuyIn(buyIn), !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
             throw TableSessionError.invalidPlayer
         }
         let seat = SessionSeat(name: name, stack: buyIn)
+        recordEdit(.addPlayer(seat.id))
         seats.append(seat)
         return seat.id
     }
@@ -159,6 +239,7 @@ public struct TableSession: Codable, Sendable, Equatable {
         guard let index = seats.firstIndex(where: { $0.id == id }), seats[index].cashedOut == nil else {
             throw TableSessionError.invalidPlayer
         }
+        recordEdit(.cashOut(seats[index]))
         seats[index].cashedOut = seats[index].stack
         seats[index].stack = 0
         seats[index].sittingOut = true
@@ -168,9 +249,10 @@ public struct TableSession: Codable, Sendable, Equatable {
     public mutating func rebuy(seat id: UUID, amount: Int) throws {
         try requireBetweenHands()
         guard rebuysAllowed else { throw TableSessionError.rebuysDisabled }
-        guard amount > 0, let index = seats.firstIndex(where: { $0.id == id }), seats[index].cashedOut == nil else {
+        guard canAcceptBuyIn(amount), let index = seats.firstIndex(where: { $0.id == id }), seats[index].cashedOut == nil else {
             throw TableSessionError.invalidPlayer
         }
+        recordEdit(.rebuy(seats[index]))
         seats[index].stack += amount
         seats[index].totalBuyIn += amount
         seats[index].sittingOut = false
@@ -185,6 +267,7 @@ public struct TableSession: Codable, Sendable, Equatable {
     }
 
     private mutating func synchronize(with oldState: HandState, newState: HandState) {
+        let previousHandsPlayed = handsPlayed
         for stateSeat in newState.seats {
             guard let index = seats.firstIndex(where: { $0.id == stateSeat.id }) else { continue }
             seats[index].stack = stateSeat.stack
@@ -192,6 +275,7 @@ public struct TableSession: Codable, Sendable, Equatable {
         let wasComplete = oldState.street == .complete
         let isComplete = newState.street == .complete
         if !wasComplete, isComplete {
+            completedHands = previousHandsPlayed + 1
             for stateSeat in newState.seats {
                 if let index = seats.firstIndex(where: { $0.id == stateSeat.id }) {
                     seats[index].stack = stateSeat.stack
@@ -199,6 +283,7 @@ public struct TableSession: Codable, Sendable, Equatable {
                 }
             }
         } else if wasComplete, !isComplete {
+            completedHands = max(0, previousHandsPlayed - 1)
             for stateSeat in newState.seats {
                 if let index = seats.firstIndex(where: { $0.id == stateSeat.id }) {
                     seats[index].handsPlayed = max(0, seats[index].handsPlayed - 1)
@@ -209,7 +294,7 @@ public struct TableSession: Codable, Sendable, Equatable {
     }
 
     private func requireBetweenHands() throws {
-        if let currentHand, let state = try? replay(currentHand.setup, currentHand.events), state.street != .complete {
+        if !canEndNight {
             throw TableSessionError.handInProgress
         }
     }
@@ -232,7 +317,7 @@ public struct TableSession: Codable, Sendable, Equatable {
 }
 
 /// Errors raised by a table session.
-public enum TableSessionError: Error, Equatable, Sendable {
+public enum TableSessionError: LocalizedError, Equatable, Sendable {
     case invalidSetup
     case invalidBlinds
     case invalidPlayer
@@ -241,4 +326,18 @@ public enum TableSessionError: Error, Equatable, Sendable {
     case noCurrentHand
     case nothingToUndo
     case rebuysDisabled
+
+    /// A message suitable for the table's error alert.
+    public var errorDescription: String? {
+        switch self {
+        case .invalidSetup: return "Check the seats, dealer and blinds."
+        case .invalidBlinds: return "Use positive blinds with the big blind at least as large as the small blind."
+        case .invalidPlayer: return "Check the player and amount. The player must still be at the table and the points must fit in the table total."
+        case .notEnoughPlayers: return "At least two players need points to start a hand."
+        case .handInProgress: return "Finish the current hand to manage the table."
+        case .noCurrentHand: return "Start a hand first."
+        case .nothingToUndo: return "There are no actions to undo in this hand."
+        case .rebuysDisabled: return "Rebuys are off for this night."
+        }
+    }
 }

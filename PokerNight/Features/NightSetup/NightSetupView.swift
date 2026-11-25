@@ -6,95 +6,119 @@ struct NightSetupView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var context
     @Query(sort: \Player.name) private var roster: [Player]
-    let onStart: (TableSession) -> Void
-    @State private var selected = Set<UUID>()
-    @State private var startingStack = 10
-    @State private var startingStackText = "10"
-    @State private var smallBlind = 1
-    @State private var bigBlind = 2
-    @State private var rebuysAllowed = false
+    let onStart: (TableSession) throws -> Void
+    @State private var draft = NightSetupDraft()
+    @State private var newName = ""
+    @State private var errorMessage: String?
 
-    private var startingStackBinding: Binding<Int> {
-        Binding(
-            get: { startingStack },
-            set: { value in
-                startingStack = value
-                startingStackText = String(value)
-            }
-        )
+    private var players: [SetupPlayer] { roster.map { SetupPlayer(id: $0.id, name: $0.name) } }
+    private var selectedPlayers: [SetupPlayer] {
+        draft.seatIDs.compactMap { id in players.first { $0.id == id } }
     }
-
-    private var normalizedStartingStack: Int {
-        min(10000, max(10, Int(startingStackText) ?? startingStack))
-    }
-
-    private func normalizeStartingStack() {
-        startingStack = normalizedStartingStack
-        startingStackText = String(startingStack)
+    private var stackBinding: Binding<Int> {
+        Binding(get: { min(10000, max(10, Int(draft.startingStackText) ?? 10)) },
+                set: { draft.startingStackText = String($0) })
     }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section("Players") {
-                    ForEach(roster) { player in
-                        Toggle(player.name, isOn: Binding(get: { selected.contains(player.id) }, set: { isOn in
-                            if isOn { selected.insert(player.id) } else { selected.remove(player.id) }
-                        }))
-                        .listRowBackground(Theme.surface)
-                    }
-                    if roster.isEmpty {
-                        Text("Add players first.")
-                            .foregroundStyle(Theme.textSecondary)
-                            .listRowBackground(Theme.surface)
-                    }
-                }
+                rosterSection
+                seatSection
                 Section("Night") {
-                    HStack {
-                        Text("Starting stack")
-                        Spacer()
-                        TextField("Starting stack", text: $startingStackText)
+                    LabeledContent("Starting stack") {
+                        TextField("Starting stack", text: $draft.startingStackText)
                             .keyboardType(.numberPad)
                             .multilineTextAlignment(.trailing)
-                            .frame(width: 120)
-                            .onSubmit(normalizeStartingStack)
-                            .onChange(of: startingStackText) { _, value in
-                                if let value = Int(value), (10...10000).contains(value) {
-                                    startingStack = value
-                                }
-                            }
+                            .frame(minWidth: 70)
                     }
-                    .listRowBackground(Theme.surface)
-                    Stepper("Adjust by 10", value: startingStackBinding, in: 10...10000, step: 10)
-                        .listRowBackground(Theme.surface)
-                    Stepper("Small blind: \(smallBlind)", value: $smallBlind, in: 1...1000)
-                        .listRowBackground(Theme.surface)
-                    Stepper("Big blind: \(bigBlind)", value: $bigBlind, in: smallBlind...2000)
-                        .listRowBackground(Theme.surface)
-                    Toggle("Allow rebuys", isOn: $rebuysAllowed)
-                        .listRowBackground(Theme.surface)
+                    Stepper("Adjust by 10", value: stackBinding, in: 10...10000, step: 10)
+                    Stepper("Small blind: \(draft.smallBlind)", value: $draft.smallBlind, in: 1...1000)
+                        .onChange(of: draft.smallBlind) { _, value in
+                            draft.bigBlind = max(value, draft.bigBlind)
+                        }
+                    Stepper("Big blind: \(draft.bigBlind)", value: $draft.bigBlind, in: draft.smallBlind...2000)
+                    Toggle("Allow rebuys", isOn: $draft.rebuysAllowed)
                 }
+                .listRowBackground(Theme.surface)
                 Section {
-                    Button("Start night") {
-                        normalizeStartingStack()
-                        let players = roster.filter { selected.contains($0.id) }
-                        guard players.count >= 2, let session = try? TableSession(
-                            seats: players.map { SessionSeat(id: $0.id, name: $0.name, stack: startingStack) },
-                            smallBlind: smallBlind,
-                            bigBlind: bigBlind,
-                            rebuysAllowed: rebuysAllowed
-                        ) else { return }
-                        onStart(session)
-                        dismiss()
+                    if let message = draft.validationMessage(roster: players) {
+                        Text(message).foregroundStyle(Theme.textSecondary)
                     }
-                    .disabled(selected.count < 2)
+                    Button("Start night") {
+                        do {
+                            try onStart(draft.makeSession(roster: players))
+                            dismiss()
+                        } catch { errorMessage = error.localizedDescription }
+                    }
+                    .disabled(draft.validationMessage(roster: players) != nil)
                     .buttonStyle(ThemedButtonStyle(kind: .strong))
-                    .listRowBackground(Theme.surface)
                 }
+                .listRowBackground(Theme.surface)
             }
+            .environment(\.editMode, .constant(.active))
             .themedScreen()
             .navigationTitle("New Night")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+            .alert("New night", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
+                Button("OK") { errorMessage = nil }
+            } message: { Text(errorMessage ?? "") }
         }
+    }
+
+    private var rosterSection: some View {
+        Section("Players") {
+            HStack {
+                TextField("New player name", text: $newName)
+                    .textInputAutocapitalization(.words)
+                    .autocorrectionDisabled()
+                Button("Add") { addPlayer() }
+                    .disabled(newName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            ForEach(roster) { player in
+                Toggle(player.name, isOn: Binding(
+                    get: { draft.seatIDs.contains(player.id) },
+                    set: { draft.select(player.id, isSelected: $0) }
+                ))
+            }
+        }
+        .listRowBackground(Theme.surface)
+    }
+
+    private var seatSection: some View {
+        Section {
+            ForEach(selectedPlayers) { player in
+                HStack {
+                    Text("Seat \((draft.seatIDs.firstIndex(of: player.id) ?? 0) + 1)")
+                        .foregroundStyle(Theme.textSecondary)
+                    Text(player.name)
+                    if draft.dealerID == player.id { Text("Dealer").font(.caption.bold()) }
+                }
+            }
+            .onMove { source, destination in draft.seatIDs.move(fromOffsets: source, toOffset: destination) }
+            if !selectedPlayers.isEmpty {
+                Picker("First dealer", selection: $draft.dealerID) {
+                    ForEach(selectedPlayers) { player in Text(player.name).tag(Optional(player.id)) }
+                }
+                Button("Randomize dealer") { draft.randomizeDealer() }
+            }
+        } header: {
+            Text("Seat order")
+        } footer: {
+            Text("Select players above, then drag the handles into clockwise seat order. The dealer stays selected when seats move.")
+        }
+        .listRowBackground(Theme.surface)
+    }
+
+    private func addPlayer() {
+        do {
+            let name = try PlayerName.validated(newName, in: players)
+            let player = Player(name: name)
+            context.insert(player)
+            do { try context.save() }
+            catch { context.delete(player); throw error }
+            draft.select(player.id, isSelected: true)
+            newName = ""
+        } catch { errorMessage = error.localizedDescription }
     }
 }

@@ -1,6 +1,9 @@
 import Observation
 import PokerCore
+import Foundation
+#if canImport(UIKit)
 import UIKit
+#endif
 
 @MainActor
 @Observable
@@ -8,7 +11,10 @@ final class GameController {
     var session: TableSession
     var errorMessage: String?
 
-    init(session: TableSession) {
+    private let save: (TableSession) throws -> Void
+
+    init(session: TableSession, save: @escaping (TableSession) throws -> Void = ActiveNightStore().write) {
+        self.save = save
         self.session = session
     }
 
@@ -16,35 +22,52 @@ final class GameController {
     var legal: LegalActions { state.map(legalActions) ?? LegalActions(canFold: false, canCheck: false, callAmount: 0, minRaiseTo: nil, maxRaiseTo: 0) }
 
     func startHand() {
-        do {
-            try session.startNextHand()
-            persist()
-        } catch { errorMessage = error.localizedDescription }
+        update { try $0.startNextHand() }
     }
 
     func apply(_ action: PlayerAction) {
-        do {
-            try session.apply(.action(action))
-            persist()
+        if update({ try $0.apply(.action(action)) }) {
+            #if canImport(UIKit)
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        } catch { errorMessage = error.localizedDescription }
+            #endif
+        }
     }
 
     func undo() {
-        do {
-            try session.undo()
-            persist()
-        } catch { errorMessage = error.localizedDescription }
+        update { try $0.undo() }
     }
 
     func award(potIndex: Int, winners: [UUID]) {
-        do {
-            try session.apply(.award(potIndex: potIndex, winners: winners))
-            persist()
-        } catch { errorMessage = error.localizedDescription }
+        update { try $0.apply(.award(potIndex: potIndex, winners: winners)) }
     }
 
-    func persist() {
-        ActiveNightStore.save(session)
+    func changeBlinds(small: Int, big: Int) {
+        update { try $0.setBlinds(smallBlind: small, bigBlind: big) }
+    }
+
+    func rebuy(seat: UUID, amount: Int) {
+        update { try $0.rebuy(seat: seat, amount: amount) }
+    }
+
+    func addPlayer(name: String, buyIn: Int) {
+        update { try $0.addPlayer(name: name.trimmingCharacters(in: .whitespacesAndNewlines), buyIn: buyIn) }
+    }
+
+    func cashOut(seat: UUID) {
+        update { try $0.cashOut(seat: seat) }
+    }
+
+    @discardableResult
+    private func update(_ change: (inout TableSession) throws -> Void) -> Bool {
+        do {
+            var updated = session
+            try change(&updated)
+            try save(updated)
+            session = updated
+            return true
+        } catch {
+            errorMessage = error.localizedDescription
+            return false
+        }
     }
 }

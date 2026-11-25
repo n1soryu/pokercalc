@@ -91,4 +91,41 @@ struct SessionTests {
         #expect(session.currentState?.street != .complete)
         #expect(session.seats.first(where: { $0.id == a })?.handsPlayed == 0)
     }
+    @Test func editsAfterCompletionUndoInOrderAfterResume() throws {
+        var session = try makeSession()
+        try session.startNextHand()
+        try session.apply(.action(.fold))
+        let completed = session
+        try session.setBlinds(smallBlind: 1, bigBlind: 2)
+        try session.rebuy(seat: c, amount: 40)
+        try session.cashOut(seat: b)
+        try session.addPlayer(name: "D", buyIn: 25)
+        session = try JSONDecoder().decode(TableSession.self, from: JSONEncoder().encode(session))
+        for label in ["added player", "cash out", "rebuy", "blind change"] {
+            #expect(session.lastTableEdit == label)
+            try session.undo()
+        }
+        #expect(session == completed)
+        try session.undo()
+        #expect(session.currentState?.street == .preflop)
+    }
+
+    @Test func updatedBlindsCanTakeBothRemainingStacksToShowdown() throws {
+        var session = try makeSession()
+        try session.setBlinds(smallBlind: 100, bigBlind: 200)
+        try session.startNextHand()
+        #expect(session.currentState?.street == .showdown)
+        #expect(session.currentState?.potTotal == 200)
+        try session.apply(.award(potIndex: 0, winners: [a]))
+        #expect(!session.canStartHand)
+        try session.rebuy(seat: b, amount: 25)
+        #expect(session.canStartHand)
+    }
+
+    @Test func externalPointsMustFitInTheTablesPointTotal() throws {
+        var session = try makeSession()
+        #expect(throws: TableSessionError.invalidPlayer) { try session.addPlayer(name: "D", buyIn: Int.max) }
+        #expect(throws: TableSessionError.invalidPlayer) { try session.rebuy(seat: c, amount: Int.max) }
+    }
+
 }

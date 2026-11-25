@@ -5,9 +5,8 @@ import UIKit
 
 struct TableView: View {
     @Bindable var controller: GameController
-    @Environment(AppModel.self) private var appModel
-    @Environment(\.modelContext) private var modelContext
-    @State private var showingChecker = false
+    @State private var checker: CheckerRequest?
+    @State private var management: TableOperation?
     @State private var showingRankings = false
     @State private var showingRaise = false
     @State private var confirmingEndNight = false
@@ -18,12 +17,14 @@ struct TableView: View {
             if let state = controller.state {
                 table(state)
             } else {
-                ContentUnavailableView("No hand in progress", systemImage: "suit.club", description: Text("Start a hand to begin playing."))
-                    .overlay(alignment: .bottom) {
-                        Button("Start hand") { controller.startHand() }
-                            .buttonStyle(ThemedButtonStyle(kind: .strong))
-                            .padding()
+                ScrollView {
+                    VStack(spacing: 16) {
+                        Text("No hand in progress").font(.title.bold())
+                        sessionSeats
+                        startButton("Start hand")
                     }
+                    .padding()
+                }
             }
         }
         .themedScreen()
@@ -31,39 +32,85 @@ struct TableView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    Button("Showdown checker") { showingChecker = true }
+                    Button("Showdown checker") { checker = CheckerRequest() }
                     Button("Hand rankings") { showingRankings = true }
                     Divider()
+                    ForEach(TableOperation.allCases) { operation in
+                        Button(operation.rawValue) { management = operation }
+                            .disabled(operation.unavailableReason(in: controller.session) != nil)
+                    }
+                    ForEach(disabledReasons, id: \.self) { reason in
+                        Text(reason)
+                    }
+                    Divider()
                     Button("End night", role: .destructive) { confirmingEndNight = true }
+                        .disabled(!controller.session.canEndNight)
                 } label: {
                     Image(systemName: "ellipsis.circle")
                 }
             }
         }
-        .sheet(isPresented: $showingChecker) { ShowdownCheckerView().themedSheet() }
+        .sheet(item: $checker) { request in
+            ShowdownCheckerView(initialNames: request.names).themedSheet()
+        }
+        .sheet(item: $management) { operation in
+            TableManagementView(operation: operation, controller: controller).themedSheet()
+        }
         .sheet(isPresented: $showingRankings) { HandRankingsView().themedSheet() }
-        .confirmationDialog("End this night?", isPresented: $confirmingEndNight) {
-            Button("End night", role: .destructive) {
-                appModel.endNight(context: modelContext)
-            }
-        } message: {
-            Text("The current results will be saved to Past Nights.")
+        .sheet(isPresented: $confirmingEndNight) {
+            EndNightReviewView(controller: controller).themedSheet()
         }
         .sheet(isPresented: $showingRaise) {
-            RaiseView(
-                amount: $raiseAmount,
-                range: (controller.legal.minRaiseTo ?? 1)...max(1, controller.legal.maxRaiseTo),
-                potAmount: controller.state?.pots.reduce(0) { $0 + $1.amount } ?? 0
-            ) {
-                controller.apply(.betOrRaise(to: raiseAmount))
-                showingRaise = false
-            }.themedSheet()
+            if let state = controller.state, let targets = RaiseTargets(state) {
+                RaiseView(amount: $raiseAmount, targets: targets) {
+                    controller.apply(.betOrRaise(to: raiseAmount))
+                    showingRaise = false
+                }.themedSheet()
+            }
         }
-        .alert("Table", isPresented: .constant(controller.errorMessage != nil), presenting: controller.errorMessage) { _ in
+        .alert("Table", isPresented: .constant(management == nil && controller.errorMessage != nil), presenting: controller.errorMessage) { _ in
             Button("OK") { controller.errorMessage = nil }
         } message: { Text($0) }
         .onAppear { UIApplication.shared.isIdleTimerDisabled = true }
         .onDisappear { UIApplication.shared.isIdleTimerDisabled = false }
+    }
+
+    private struct CheckerRequest: Identifiable {
+        let id = UUID()
+        var names: [String]? = nil
+    }
+
+    private var disabledReasons: [String] {
+        var reasons: [String] = []
+        for operation in TableOperation.allCases {
+            if let reason = operation.unavailableReason(in: controller.session), !reasons.contains(reason) {
+                reasons.append(reason)
+            }
+        }
+        return reasons
+    }
+
+    private var sessionSeats: some View {
+        ForEach(controller.session.seats) { seat in
+            LabeledContent(seat.name) {
+                if let amount = seat.cashedOut { Text("Cashed out · \(amount)") }
+                else { Text("\(seat.stack) points") }
+            }
+            .monospacedDigit()
+            .padding()
+            .panel()
+        }
+    }
+
+    private func startButton(_ title: String) -> some View {
+        VStack {
+            if !controller.session.canStartHand {
+                Text("At least two players need points to start a hand.")
+            }
+            Button(title) { controller.startHand() }
+                .buttonStyle(ThemedButtonStyle(kind: .strong))
+                .disabled(!controller.session.canStartHand)
+        }
     }
 
     @ViewBuilder
@@ -88,18 +135,22 @@ struct TableView: View {
                         .background(Theme.accent, in: Capsule())
                 }
                 PotsView(state: state)
-                ForEach(state.seats) { seat in
-                    SeatRow(
-                        seat: seat,
-                        seatIndex: state.seats.firstIndex(where: { $0.id == seat.id }) ?? 0,
-                        state: state,
-                        isActor: state.currentActorIndex.flatMap { state.seats[$0].id == seat.id } ?? false
-                    )
-                }
-                if state.street == .showdown {
-                    AwardPanel(state: state) { potIndex, winners in
-                        controller.award(potIndex: potIndex, winners: winners)
+                if state.street == .complete {
+                    sessionSeats
+                } else {
+                    ForEach(state.seats) { seat in
+                        SeatRow(
+                            seat: seat,
+                            seatIndex: state.seats.firstIndex(where: { $0.id == seat.id }) ?? 0,
+                            state: state,
+                            isActor: state.currentActorIndex.flatMap { state.seats[$0].id == seat.id } ?? false
+                        )
                     }
+                }
+                ForEach(state.unawardedPotIndices, id: \.self) { index in
+                    AwardPanel(state: state, potIndex: index, onCheck: {
+                        checker = CheckerRequest(names: state.eligibleNames(for: state.pots[index]))
+                    }, onAward: controller.award)
                 }
                 actionBar
             }
@@ -113,8 +164,7 @@ struct TableView: View {
         VStack(spacing: 10) {
             if let state = controller.state,
                state.street == .complete {
-                Button("Start next hand") { controller.startHand() }
-                    .buttonStyle(ThemedButtonStyle(kind: .strong))
+                startButton("Start next hand")
             } else if controller.state?.street != .showdown {
                 HStack {
                     if controller.legal.canCheck || controller.legal.callAmount == 0 {
@@ -138,10 +188,10 @@ struct TableView: View {
                     Button("All-in") { controller.apply(.allIn) }
                         .buttonStyle(ThemedButtonStyle(kind: .destructive))
                 }
-                Button("Undo") { controller.undo() }
-                    .buttonStyle(ThemedButtonStyle(kind: .quiet))
-                    .disabled(controller.session.currentHand?.events.isEmpty ?? true)
             }
+            Button(controller.session.lastTableEdit.map { "Undo \($0)" } ?? "Undo") { controller.undo() }
+                .buttonStyle(ThemedButtonStyle(kind: .quiet))
+                .disabled(!controller.session.canUndo)
         }
     }
 
@@ -162,46 +212,38 @@ struct TableView: View {
 
 private struct AwardPanel: View {
     let state: HandState
+    let potIndex: Int
+    let onCheck: () -> Void
     let onAward: (Int, [UUID]) -> Void
-    @State private var potIndex = 0
     @State private var winners = Set<UUID>()
-
-    private var currentPot: Pot? {
-        guard state.pots.indices.contains(potIndex) else { return nil }
-        return state.pots[potIndex]
-    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Award pots").font(.title2.bold())
-            if let pot = currentPot {
-                Text("Pot \(potIndex + 1): \(pot.amount)")
-                    .font(.headline)
-                ForEach(pot.eligible, id: \.self) { id in
-                    if let seat = state.seats.first(where: { $0.id == id }) {
-                        Button {
-                            if winners.contains(id) { winners.remove(id) } else { winners.insert(id) }
-                        } label: {
-                            HStack {
-                                Text(seat.name)
-                                Spacer()
-                                Image(systemName: winners.contains(id) ? "checkmark.circle.fill" : "circle")
-                            }
+            let pot = state.pots[potIndex]
+            Text(potIndex == 0 ? "Main pot · \(pot.amount)" : "Side pot \(potIndex) · \(pot.amount)")
+                .font(.headline)
+            Button("Check hands", action: onCheck)
+                .buttonStyle(ThemedButtonStyle(kind: .outline))
+            ForEach(pot.eligible, id: \.self) { id in
+                if let seat = state.seats.first(where: { $0.id == id }) {
+                    Button {
+                        if winners.contains(id) { winners.remove(id) } else { winners.insert(id) }
+                    } label: {
+                        HStack {
+                            Text(seat.name)
+                            Spacer()
+                            Image(systemName: winners.contains(id) ? "checkmark.circle.fill" : "circle")
                         }
-                        .buttonStyle(ThemedButtonStyle(kind: winners.contains(id) ? .primary : .outline))
                     }
+                    .buttonStyle(ThemedButtonStyle(kind: winners.contains(id) ? .primary : .outline))
                 }
-                Button("Confirm winners") {
-                    onAward(potIndex, Array(winners))
-                    winners = []
-                    if potIndex + 1 < state.pots.count { potIndex += 1 }
-                }
-                .buttonStyle(ThemedButtonStyle(kind: .primary))
-                .disabled(winners.isEmpty)
-            } else {
-                Text("All pots awarded.")
-                    .foregroundStyle(Theme.textPrimary)
             }
+            Button("Confirm winners") {
+                onAward(potIndex, Array(winners))
+                winners = []
+            }
+            .buttonStyle(ThemedButtonStyle(kind: .primary))
+            .disabled(winners.isEmpty)
         }
         .padding()
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -282,16 +324,12 @@ private struct SeatRow: View {
 private struct PotsView: View {
     let state: HandState
 
-    private var potTotal: Int {
-        state.pots.reduce(0) { $0 + $1.amount } + state.seats.reduce(0) { $0 + $1.committedTotal }
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Pot")
                 .font(.subheadline.bold())
                 .foregroundStyle(Theme.textSecondary)
-            Text("\(potTotal)")
+            Text("\(state.potTotal)")
                 .font(.title.bold().monospacedDigit())
                 .foregroundStyle(Theme.textPrimary)
             ForEach(Array(state.pots.enumerated()), id: \.offset) { index, pot in
@@ -310,8 +348,8 @@ private struct PotsView: View {
 
 private struct RaiseView: View {
     @Binding var amount: Int
-    let range: ClosedRange<Int>
-    let potAmount: Int
+    let targets: RaiseTargets
+    private var range: ClosedRange<Int> { targets.range }
     let onSubmit: () -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -327,21 +365,23 @@ private struct RaiseView: View {
                     Button("-1000") { amount = max(range.lowerBound, amount - 1000) }.buttonStyle(ThemedButtonStyle(kind: .outline))
                 }
                 HStack {
-                    Button("+10") { amount = min(range.upperBound, amount + 10) }.buttonStyle(ThemedButtonStyle(kind: .outline))
-                    Button("+100") { amount = min(range.upperBound, amount + 100) }.buttonStyle(ThemedButtonStyle(kind: .outline))
-                    Button("+1000") { amount = min(range.upperBound, amount + 1000) }.buttonStyle(ThemedButtonStyle(kind: .outline))
+                    Button("+10") { amount = amount + min(10, range.upperBound - amount) }.buttonStyle(ThemedButtonStyle(kind: .outline))
+                    Button("+100") { amount = amount + min(100, range.upperBound - amount) }.buttonStyle(ThemedButtonStyle(kind: .outline))
+                    Button("+1000") { amount = amount + min(1000, range.upperBound - amount) }.buttonStyle(ThemedButtonStyle(kind: .outline))
                 }
-                Slider(value: Binding(
-                    get: { Double(amount) },
-                    set: { amount = min(range.upperBound, max(range.lowerBound, Int($0))) }
-                ), in: Double(range.lowerBound)...Double(range.upperBound))
-                .tint(Theme.textPrimary)
+                if range.lowerBound < range.upperBound {
+                    Slider(value: Binding(
+                        get: { Double(amount) },
+                        set: { amount = min(range.upperBound, max(range.lowerBound, Int($0))) }
+                    ), in: Double(range.lowerBound)...Double(range.upperBound))
+                    .tint(Theme.textPrimary)
+                }
                 HStack {
                     Button("Min") { amount = range.lowerBound }.buttonStyle(ThemedButtonStyle(kind: .outline))
-                    Button("Half pot") { amount = min(range.upperBound, max(range.lowerBound, potAmount / 2)) }.buttonStyle(ThemedButtonStyle(kind: .outline))
+                    Button("Half pot") { amount = targets.halfPot }.buttonStyle(ThemedButtonStyle(kind: .outline))
                 }
                 HStack {
-                    Button("Pot") { amount = min(range.upperBound, max(range.lowerBound, potAmount)) }.buttonStyle(ThemedButtonStyle(kind: .outline))
+                    Button("Pot") { amount = targets.pot }.buttonStyle(ThemedButtonStyle(kind: .outline))
                     Button("All-in") { amount = range.upperBound }.buttonStyle(ThemedButtonStyle(kind: .outline))
                 }
                 Button("Confirm") { onSubmit(); dismiss() }

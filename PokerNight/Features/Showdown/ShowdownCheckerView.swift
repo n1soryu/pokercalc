@@ -3,11 +3,15 @@ import SwiftUI
 
 struct ShowdownCheckerView: View {
     @State private var board: [Card] = []
-    @State private var players = [
-        DraftPlayer(name: "Player 1"),
-        DraftPlayer(name: "Player 2")
-    ]
+    private let initialNames: [String]
+    @State private var players: [DraftPlayer]
     @State private var selectedSlot: CardSlot?
+
+    init(initialNames: [String]? = nil) {
+        let names = initialNames ?? ["Player 1", "Player 2"]
+        self.initialNames = names
+        _players = State(initialValue: names.map { DraftPlayer(name: $0) })
+    }
 
     private var usedCards: Set<Card> {
         Set(board + players.flatMap(\.cards))
@@ -85,10 +89,7 @@ struct ShowdownCheckerView: View {
 
                     Button("Reset", role: .destructive) {
                         board = []
-                        players = [
-                            DraftPlayer(name: "Player 1"),
-                            DraftPlayer(name: "Player 2")
-                        ]
+                        players = initialNames.map { DraftPlayer(name: $0) }
                     }
                     .frame(maxWidth: .infinity, alignment: .trailing)
                     .buttonStyle(ThemedButtonStyle(kind: .quiet))

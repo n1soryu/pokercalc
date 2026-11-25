@@ -23,8 +23,8 @@ public func legalActions(_ state: HandState) -> LegalActions {
     if state.actedSinceRaise.contains(actor.id) || maxRaiseTo <= state.currentBet {
         minRaiseTo = nil
     } else {
-        let minimum = state.currentBet == 0 ? state.setup.bigBlind : state.currentBet + state.lastFullRaiseSize
-        minRaiseTo = minimum <= maxRaiseTo ? minimum : nil
+        let increment = state.currentBet == 0 ? state.setup.bigBlind : state.lastFullRaiseSize
+        minRaiseTo = increment <= maxRaiseTo - state.currentBet ? state.currentBet + increment : nil
     }
     return LegalActions(
         canFold: true,
@@ -81,7 +81,7 @@ private func initialState(_ setup: HandSetup) throws -> HandState {
     let actor = headsUp && seats[smallBlindIndex].status == .active
         ? smallBlindIndex
         : nextActor(from: bigBlindIndex, seats: seats)
-    return HandState(
+    var state = HandState(
         setup: setup,
         seats: seats,
         street: .preflop,
@@ -93,6 +93,11 @@ private func initialState(_ setup: HandSetup) throws -> HandState {
         actedSinceRaise: [],
         awardedPotIndices: []
     )
+    let ableToAct = seats.filter { $0.status == .active }
+    if ableToAct.count <= 1 && ableToAct.allSatisfy({ $0.committedThisStreet == state.currentBet }) {
+        prepareShowdown(&state)
+    }
+    return state
 }
 
 private func apply(_ action: PlayerAction, to state: inout HandState) throws {

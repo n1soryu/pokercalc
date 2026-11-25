@@ -6,15 +6,19 @@
 
 ## 1. Status
 
-**Current phase:** Complete
+**Current phase:** Phase 7–9 — implemented, committed and pushed on 2026-11-25 at the owner's request; interactive Simulator verification and phase sign-off still pending
 
 - [x] Phase 0: Environment, Xcode project (XcodeGen), PokerCore package, cards, git
 - [x] Phase 1: Hand evaluator and explanations (PokerCore)
 - [x] Phase 2: Showdown checker and hand rankings UI
 - [x] Phase 3: Betting engine (PokerCore)
 - [x] Phase 4: Table session (PokerCore)
-- [x] Phase 5: Table UI
-- [x] Phase 6: Roster, night setup, history
+- [x] Phase 5: Initial table UI
+- [x] Phase 6: Initial roster, night setup, and history UI
+- [ ] Phase 7: Gameplay correctness and safety
+- [ ] Phase 8: Between-hand table management and showdown integration
+- [ ] Phase 9: Setup, navigation, end-night, and history completion
+- [ ] Phase 10: Persistence hardening, accessibility, assets, and release validation
 
 **Deviations from this plan** (append one line per deviation: date, phase, what changed, why):
 
@@ -23,6 +27,16 @@
 - 2026-11-22: Major tweak — default starting stack changed to 10, with 10-point setup increments and ±10/±100/±1000 raise controls.
 - 2026-11-22: Starting stack setup supports direct numeric entry with a 10-point stepper and a 10–10000 valid range.
 - 2026-11-22: Fixed completed-hand action bar to offer “Start next hand” instead of displaying a zero-call action.
+- 2026-11-24: Completion audit found that Phases 5–6 delivered the initial UI but did not implement every item in Sections 8.4–8.5. Added Phases 7–10 to finish the specification and harden the app.
+- 2026-11-24, Phase 7 — The session could run PokerCore tests and type-check the app against the Simulator SDK. The generic Xcode build and interactive playtest remain pending due to local environment restrictions.
+
+- 2026-11-24, Phase 8 — Owner authorized proceeding while Phase 7 owner verification is deferred. Both phase checkboxes remain open pending validation.
+- 2026-11-24, Phase 8 — Undo reverses table edits made after hand completion in reverse order before undoing the award. This preserves cash-outs and rebuys when reopening a hand, including after resume. Starting the next hand clears the undo history.
+
+- 2026-11-25, Phase 9 — Owner requested Phase 9 on top of the existing Phase 7–8 working tree. Earlier phase sign-offs remain pending; their changes were preserved.
+- 2026-11-25, Phase 9 — Owner chose “Not recorded” for the original starting stack of legacy autosaves. New sessions store the configured stack separately from buy-ins; existing history retains its saved values.
+- 2026-11-25, Phase 9 — Added a session-wide completed-hand counter because per-seat maximums undercount after complete player turnover. Legacy autosaves retain the best available per-seat count; previously unrecorded history cannot be reconstructed.
+- 2026-11-25, Phases 7–9 — Owner asked to commit and push all pending work before interactive sign-off. Because the phase changes share files, they were committed together rather than as separate phase commits; the phase checkboxes remain open until manual verification is recorded.
 
 **Open questions** (append; remove when answered):
 
@@ -34,8 +48,28 @@
 - Bundle ID: `com.uzayer.pokernight`
 - Xcode version used: `Xcode 27.2 (build 27B52)`
 - Latest theme commit: `d7d65eb` — plain black, red, and white theme
-- Current implementation: Phases 0–6 are complete and committed
-- Verification: all 34 PokerCore tests pass; the iOS Simulator build succeeds
+- Current implementation: Phases 0–9 are implemented and committed. Phase 10 has not started. Phases 7–9 were committed together on 2026-11-25 at the owner's request and pushed to `origin/main`; their checkboxes remain open pending interactive Simulator sign-off.
+- Pre-Phase 7 verification on 2026-11-24: all 34 PokerCore tests pass; the iOS Simulator build succeeds without compiler warnings.
+- Phase 7 automated verification on 2026-11-24: all 38 PokerCore tests passed, including live-pot shortcuts and limits, pot totals, end-night eligibility on every street, and undo/re-award across side pots and hand boundaries. All app Swift sources type-checked for the arm64 iOS Simulator with warnings treated as errors.
+- Phase 7 build and manual verification on 2026-11-24: the Section 2 generic build was attempted. Xcode package resolution encountered restricted cache writes and, with a writable module cache, a denied manifest sandbox. CoreSimulatorService refused the connection. No interactive scenarios were verified. On a Mac with Simulator access, run the Section 2 build and Section 9 Phase 7 item 7, then record the device and outcome before checking off and committing the phase.
+- Phase 8 automated verification on 2026-11-24: 41 PokerCore tests passed. Both controller tests passed with the same controller, store and test sources in a temporary macOS SwiftPM harness. App sources passed arm64 iOS Simulator SDK type-checking with warnings as errors. XcodeGen generated the iOS unit-test target. The generic build and Simulator test command both stopped at SwiftPM cache permissions during package resolution.
+- Phase 8 owner verification: run the Section 2 generic build and the PokerNight scheme tests on an available iPhone Simulator. Exercise blinds, rebuy preview, add, cash-out cancellation/confirmation, one-player start blocking and recovery, disabled management while betting/at showdown, and separate main/side-pot checkers. Confirm checker edits leave winners untouched. Record the device and results here before phase sign-off.
+- Phase 9 implementation on 2026-11-25: inline roster creation with trimmed/unique names, selected seat ordering with drag handles, explicit/random first dealer, validated setup, direct start/resume navigation, recoverable corrupt autosaves, an explicit final-results review, original starting-stack metadata, sorted history summaries/details, and confirmed history deletion. Starting another night is blocked until the existing night ends. Archive saves precede active-file removal; retries use a stable identity to avoid duplicate nights.
+- Phase 9 automated verification on 2026-11-25: all 43 PokerCore tests passed. All 18 app test methods passed (25 runs including parameterized cases) on iPhone Duo / iOS 27.1, including setup order/dealer/validation, start/resume/end navigation, corrupt-save recovery isolation, exact starting-stack persistence after rebuy, legacy metadata, sorted results, archive retry deduplication, and disk-backed migration preserving existing history and roster. The Section 2 generic iOS Simulator build succeeded with no Swift compiler warnings; Xcode emitted its App Intents metadata-skipped warning because the app has no AppIntents dependency. XcodeGen regeneration and `git diff --check` passed. This run also exercised the existing Phase 8 controller tests; prior phases still need their interactive sign-off.
+- Phase 9 manual verification remains pending: interactive Simulator control is unavailable because Device hub/Agent device access is disabled for this environment. The CUA app inventory also cannot open Simulator. Verify inline add/duplicate-name errors, drag seat ordering, dealer selection/randomization, invalid stack entry, one-step start, app relaunch/one-tap resume, corrupt-save cancel/delete, review cancel/confirm, history metadata/results, and deletion cancel/confirm on an iPhone Simulator. The Phase 7, 8 and 9 checkboxes remain open until this required verification is recorded; the code was committed and pushed at the owner's request.
+- 2026-11-25 pre-push verification: all 43 PokerCore tests passed, all 18 app test methods passed (25 runs including parameterized cases) on iPhone Duo / iOS 27.1, the Section 2 generic iOS Simulator build succeeded, `xcodegen generate` regenerated the project, and `git diff --check` reported no whitespace errors.
+- 2026-11-25 delivery: `master` was pushed to `origin/main` with upstream tracking. The remote's one-line README `Initial commit` was merged into the local history first because the two histories were unrelated; no remote content was overwritten.
+- Audit baseline commit: `9778796` — Fix: end-of-hand action bar and zero call
+- Git note: after the 2026-11-25 push, local `master` tracks `origin/main`; verify the branch is clean and pushed before calling a release complete.
+
+### Remaining-work summary
+
+Work in this order; the detailed definitions of done are in Section 9.
+
+1. **Correctness first (Phase 7):** implemented and committed; finish the manual flow checklist for pot display, live-pot shortcuts, end-night safety, and undo recorded in Section 9.
+2. **Complete the table workflow (Phase 8):** implemented and committed; manually verify blinds, rebuy, add player, cash out, between-hand guards, and the prefilled checker.
+3. **Verify setup and history (Phase 9):** implementation is committed and pushed. Finish the interactive start/resume, setup ordering/dealer, corruption recovery, end-review, and history deletion checklist recorded above, then sign off the open Phase 7–9 checkboxes.
+4. **Harden and validate (Phase 10):** persistence error handling, chip-conservation assertions, app-level tests, accessibility/Dynamic Type review, app icon, full simulator playtest, physical-device checklist, and release/tag/remote verification.
 
 ---
 
@@ -91,7 +125,7 @@ Tournaments, blind timers, payouts, antes, straddles, running it twice, multi-de
 
 ### Defaults (owner may override)
 
-- Whole-number points only. Default starting stack 200, default blinds 1/2.
+- Whole-number points only. Default starting stack 10, valid starting-stack range 10–10000, default blinds 1/2.
 - Simple moving button (next seat with chips). No dead-button rule.
 - Odd leftover points in a split pot go one at a time to winners in seat order starting left of the button.
 
@@ -364,7 +398,7 @@ public func replay(_ setup: HandSetup, _ events: [HandEvent]) throws -> HandStat
 ### 8.1 Shared
 
 - `CardView`: rank + suit symbol, red for hearts and diamonds, used everywhere.
-- Large, high-contrast type. Works in light and dark mode. Portrait iPhone only.
+- Large, high-contrast type. The app intentionally uses its forced dark theme. Portrait iPhone only.
 - Light haptic on each player action.
 
 ### 8.2 Showdown checker (Phase 2)
@@ -449,6 +483,77 @@ Implement 8.4.
 
 ### Phase 6: Roster, setup, history
 Implement 8.5 and replace the temporary Home screen.
+
+### Phase 7: Gameplay correctness and safety
+
+This phase is the next work to do. It fixes issues that can mislead the dealer or produce invalid night results. Do not begin Phase 8 until every item below is complete.
+
+1. **Extract testable table-amount calculations.** Put pot-display and raise-shortcut calculations in small pure functions or a focused value type outside the SwiftUI view body so they can be unit tested. Keep actual poker-rule state in `PokerCore`; UI presentation helpers may remain in the app target.
+2. **Fix pot display double counting.** During an active betting street, the displayed pot is the sum of all seats' `committedTotal`. At showdown/completion, where `state.pots` contains the built pots, display the sum of `state.pots` only. Never add both representations of the same points. Continue to show individual side-pot amounts.
+3. **Fix Half Pot and Pot quick actions.** During betting, calculate the live pot from `committedTotal`, not `state.pots`. Use raise-to amounts:
+   - Let `P` be the live pot before the actor acts, `C` the actor's legal call amount, and `A` the actor's amount already committed on this street.
+   - Pot: target raise-to = `A + C + (P + C)`.
+   - Half Pot: target raise-to = `A + C + floor((P + C) / 2)`.
+   - Clamp each shortcut to the legal `minRaiseTo...maxRaiseTo` range. Min and All-in continue to map exactly to the legal bounds.
+   - Add tests for unopened betting, facing a bet, non-round values, values below the minimum, and values above the player's maximum.
+4. **Make end-night safe.** A night may end only when there is no current hand or the current hand is complete. Disable End Night during preflop, flop, turn, river, and showdown. The user must finish the hand or undo it to a safe state; current-hand committed points must never disappear from final results. Add a testable `canEndNight` decision and tests for every street.
+5. **Restore Undo throughout a hand.** Undo must be visible during betting, showdown, and after the hand becomes complete, and disabled only when the current hand has no events. It must allow an award event to be undone before the next hand starts. Starting the next hand remains the boundary after which the prior hand cannot be undone.
+6. **Add regression coverage.** Add an app unit-test target if needed through `project.yml`; never edit the generated Xcode project. Test the extracted calculations and safety decisions. Retain all existing PokerCore tests.
+7. **Verify the complete flow manually in the Simulator:** normal hand ending by folds; checked-down showdown; all-in side pots; split pot with an odd point; undo during betting; undo of a pot award; next hand; and attempted end-night during an active hand.
+
+**Phase 7 definition of done:** all amount/safety regression tests pass, all 34+ PokerCore tests pass, the simulator build succeeds without new warnings, manual flow verification is recorded under Project facts, Section 1 is updated, and the phase is committed as `Phase 7: Fix gameplay calculations and safety`.
+
+### Phase 8: Between-hand table management and showdown integration
+
+1. Add a between-hand management menu/sheet exposing the already implemented `TableSession` operations:
+   - Change small and big blinds with validation that big blind is at least small blind.
+   - Rebuy an eligible, non-cashed-out player when `rebuysAllowed` is true; choose a positive whole-number amount and show the resulting stack/total buy-in.
+   - Add a player with a non-empty name and positive buy-in.
+   - Cash out an active player after a destructive confirmation that shows their final stack.
+2. Change blinds, Rebuy, Add player, and Cash out must be enabled only between hands. Give disabled controls a clear explanatory message rather than silently doing nothing.
+3. Persist immediately after every successful management operation. Surface errors through the existing table alert rather than swallowing them.
+4. Keep the table usable when management changes leave fewer than two players able to play: show a clear state and prevent Start Hand until at least two eligible players have chips.
+5. Allow `ShowdownCheckerView` to accept optional initial player names while preserving the generic Player 1/Player 2 behavior when no names are supplied.
+6. Add **Check hands** to each unawarded showdown pot. Open the checker with exactly that pot's eligible player names prefilled. The checker remains a side tool and must not award or mutate the table.
+7. Add focused tests for new controller operations and their persistence calls where practical. Manually verify each management operation and the prefilled checker.
+
+**Phase 8 definition of done:** every Section 8.4 toolbar and showdown-integration item works, operations are correctly restricted to between hands, autosave occurs after every mutation, tests/build pass, Section 1 is updated, and the phase is committed as `Phase 8: Complete table management`.
+
+### Phase 9: Setup, navigation, end-night, and history completion
+
+1. **Complete New Night setup:**
+   - Add a player to the roster inline without leaving setup, then allow immediate selection.
+   - Show selected players in explicit seat order and support drag-to-reorder.
+   - Choose the first dealer from the selected seats or randomize it.
+   - Preserve the default stack of 10, valid 10–10000 range, 10-point stepper, direct numeric entry, blinds, and rebuys toggle.
+   - Validate names, duplicate roster entries, stack, blinds, at least two selected players, seat order, and dealer selection before creating the session.
+2. **Fix navigation:** starting a new night must dismiss setup and navigate directly to its table. Resuming an autosaved night must load and navigate in one tap. Avoid a second Resume tap and avoid leaving a newly created night sitting on Home.
+3. **Handle corrupt autosave visibly:** if an active-night file exists but cannot be decoded, show a recoverable error with options to cancel or delete only that corrupt active-night file. Never silently fail and never delete roster/history data.
+4. **Add an end-night results review:** only from the safe state defined in Phase 7, show every player's name, total buy-in, final stack, and net sorted best to worst. Require explicit confirmation before saving and deleting the active-night file.
+5. **Store the original starting stack correctly.** Do not derive `Night.startingStack` from a player's potentially rebought `totalBuyIn`; retain the configured starting stack as session/night metadata or otherwise store the exact original value.
+6. **Complete history:** each Past Nights row shows date, hands, blinds, and the top result. Detail shows every player's total buy-in, final stack, and signed net sorted best to worst. Add deletion with destructive confirmation for an accidentally saved night.
+7. Add tests for setup/session construction, navigation state decisions, original starting-stack persistence, result sorting, and corrupt-autosave handling. Manually verify fresh start, app relaunch/resume, and end/history flows.
+
+**Phase 9 definition of done:** every Section 8.5 item works, start/resume are one-step flows, history contains accurate metadata/results, corruption is recoverable, tests/build pass, Section 1 is updated, and the phase is committed as `Phase 9: Complete night setup and history`.
+
+### Phase 10: Persistence hardening, accessibility, assets, and release validation
+
+1. **Stop silently discarding persistence errors.** Make active-night save/load/remove and final SwiftData save failures visible and recoverable. A failed save must not be followed by deleting the only recoverable active-night data. Use atomic writes and preserve the last valid save where feasible.
+2. **Enforce point conservation in debug builds and tests.** After every `TableSession` mutation, debug-assert that total stacks + current-hand commitments + cashed-out stacks equals total buy-ins, accounting correctly for completed/awarded pots. Add the same invariant helper to every engine/session mutation test, including management operations and undo. Do not weaken expected values to satisfy the invariant.
+3. Add app-level tests for `GameController`, autosave encoding/decoding, end-night persistence, and critical error paths. Keep SwiftUI views thin; extract state/decisions for testing rather than attempting to unit-test `View` values directly.
+4. Perform an accessibility pass:
+   - Verify VoiceOver names and traits for card slots, card picker, dealer/blind badges, seat state, pot winners, menus, and icon-only controls.
+   - Verify Dynamic Type, including accessibility sizes, without clipped action controls or horizontally truncated critical values.
+   - Do not rely on red/white color alone for player state or selection.
+   - Retain high contrast and the intentional forced-dark theme.
+5. Review compact/small iPhone layouts and long player names. Make the table, award controls, raise controls, setup ordering, and history usable without inaccessible horizontal overflow.
+6. Add an original Poker Night app icon to `AppIcon.appiconset` with all assets required by the current Xcode asset format. Do not use copyrighted card art or third-party trademarks.
+7. Complete a clean end-to-end Simulator playtest from empty install through roster creation, setup, multiple hands, management operations, autosave relaunch, showdown awards, end night, and history. Record the tested simulator/device and date in Project facts.
+8. Give the owner the physical-iPhone checklist from Section 5. Physical-device signing/trust steps require the owner; record the result when available, but do not use `sudo` or ask for credentials.
+9. Verify Git delivery: clean worktree, latest commits pushed to the intended remote, an upstream configured for the main branch, and a known-good tag such as `v1.0-game-night`. Do not push or create a tag unless the owner has authorized that external/repository action.
+10. Reconcile this entire document against the final implementation. Remove completed remaining-work bullets, update facts and deviations, mark Phase 10 complete, and set Current phase to Complete only when no required item remains.
+
+**Phase 10 definition of done:** persistence failures are handled safely, conservation assertions/tests are comprehensive, accessibility and layout checks pass, the app has a real icon, a clean full-flow simulator test is documented, owner-only device steps are clearly handed off, Git release state is verified or explicitly recorded as awaiting owner authorization, all tests/build pass, and the phase is committed as `Phase 10: Harden and validate release`.
 
 ---
 
