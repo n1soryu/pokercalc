@@ -39,6 +39,7 @@
 - 2026-11-25, Phases 7–9 — Owner asked to commit and push all pending work before interactive sign-off. Because the phase changes share files, they were committed together rather than as separate phase commits; the phase checkboxes remain open until manual verification is recorded.
 - 2026-11-25, Phase 10 — Added a generated original card-and-chip icon because no source artwork existed. It uses only the project's black, white, and red palette and contains no text or third-party card art.
 - 2026-11-26, post-Phase 10 maintenance — Moved active-night resume I/O off the main actor, skipped the unnecessary rewrite for current saves, and made the winner-picker names truly centered to address observed opening lag and selection alignment.
+- 2026-11-26, post-Phase 10 performance follow-up — Instruments showed no app hang; Xcode Run’s `-Onone` Debug launch was dominated by Swift runtime initialization. The Run scheme now uses Release (`-O`), reducing simulator launch samples from 910 ms to 327 ms in the same app-only Time Profiler capture.
 
 **Open questions** (append; remove when answered):
 
@@ -67,6 +68,7 @@
 - Audit baseline commit: `9778796` — Fix: end-of-hand action bar and zero call
 - Git note: after the 2026-11-25 push, local `master` tracks `origin/main`; verify the branch is clean and pushed before calling a release complete.
 - 2026-11-26 maintenance verification: 45 PokerCore tests and the generic iOS Simulator app build passed. The available iPhone Duo Simulator could not boot because its runtime reported “Data Migration Failed”, so interactive launch timing and visual confirmation could not be performed in this environment.
+- 2026-11-26 performance profiling: the connected iPhone’s Instruments service failed to start its required ktrace session, so no physical-device trace was available. Simulator app-only Time Profiler comparison showed Debug (`-Onone`) at 910 ms sampled launch work versus Release (`-O`) at 327 ms; both reported zero potential hangs.
 
 ### Remaining-work summary
 
