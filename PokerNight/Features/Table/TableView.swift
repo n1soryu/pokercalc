@@ -251,11 +251,11 @@ private struct AwardPanel: View {
                     Button {
                         if winners.contains(id) { winners.remove(id) } else { winners.insert(id) }
                     } label: {
-                        HStack {
-                            Text(seat.name)
-                            Spacer()
-                            Image(systemName: winners.contains(id) ? "checkmark.circle.fill" : "circle")
-                        }
+                        Text(seat.name)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .overlay(alignment: .trailing) {
+                                Image(systemName: winners.contains(id) ? "checkmark.circle.fill" : "circle")
+                            }
                     }
                     .buttonStyle(ThemedButtonStyle(kind: winners.contains(id) ? .primary : .outline))
                     .accessibilityLabel("\(seat.name), \(winners.contains(id) ? "selected winner" : "eligible winner")")

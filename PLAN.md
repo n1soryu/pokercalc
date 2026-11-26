@@ -38,6 +38,7 @@
 - 2026-11-25, Phase 9 — Added a session-wide completed-hand counter because per-seat maximums undercount after complete player turnover. Legacy autosaves retain the best available per-seat count; previously unrecorded history cannot be reconstructed.
 - 2026-11-25, Phases 7–9 — Owner asked to commit and push all pending work before interactive sign-off. Because the phase changes share files, they were committed together rather than as separate phase commits; the phase checkboxes remain open until manual verification is recorded.
 - 2026-11-25, Phase 10 — Added a generated original card-and-chip icon because no source artwork existed. It uses only the project's black, white, and red palette and contains no text or third-party card art.
+- 2026-11-26, post-Phase 10 maintenance — Moved active-night resume I/O off the main actor, skipped the unnecessary rewrite for current saves, and made the winner-picker names truly centered to address observed opening lag and selection alignment.
 
 **Open questions** (append; remove when answered):
 
@@ -65,6 +66,7 @@
 - 2026-11-25 documentation: `README.md` now presents the app, features, build/test commands, project layout, device-install steps, and embedded app icon on the GitHub landing page.
 - Audit baseline commit: `9778796` — Fix: end-of-hand action bar and zero call
 - Git note: after the 2026-11-25 push, local `master` tracks `origin/main`; verify the branch is clean and pushed before calling a release complete.
+- 2026-11-26 maintenance verification: 45 PokerCore tests and the generic iOS Simulator app build passed. The available iPhone Duo Simulator could not boot because its runtime reported “Data Migration Failed”, so interactive launch timing and visual confirmation could not be performed in this environment.
 
 ### Remaining-work summary
 

@@ -100,8 +100,20 @@ private struct HomeView: View {
                 .fixedSize(horizontal: false, vertical: true)
 
             if appModel.hasActiveNight {
-                Button("Resume table") { appModel.resume() }
-                    .buttonStyle(ThemedButtonStyle(kind: .strong))
+                Button {
+                    Task { await appModel.resume() }
+                } label: {
+                    if appModel.isResuming {
+                        HStack(spacing: 8) {
+                            ProgressView()
+                            Text("Opening table…")
+                        }
+                    } else {
+                        Text("Resume table")
+                    }
+                }
+                .buttonStyle(ThemedButtonStyle(kind: .strong))
+                .disabled(appModel.isResuming)
             } else {
                 Button("Set up a night") { showingNewNight = true }
                     .buttonStyle(ThemedButtonStyle(kind: .strong))
