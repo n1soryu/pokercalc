@@ -14,12 +14,20 @@ extension Color {
 }
 
 enum Theme {
-    static let background = Color.black
-    static let surface = Color.black
-    static let accent = Color.red
-    static let textPrimary = Color.white
-    static let textSecondary = Color.white.opacity(0.7)
-    static let suitRed = Color.red
+    // PokerNight is meant to feel like a well-lit table after the cards are out:
+    // calm enough to read at a glance, with one unmistakable decision color.
+    static let background = Color(hex: "0A1D18")
+    static let surface = Color(hex: "103126")
+    static let surfaceRaised = Color(hex: "174638")
+    static let surfaceMuted = Color(hex: "0D281F")
+    static let cardFace = Color(hex: "F7F1E8")
+    static let accent = Color(hex: "E7B75A")
+    static let accentSoft = Color(hex: "3B321D")
+    static let textPrimary = Color(hex: "F7F1E8")
+    static let textSecondary = Color(hex: "B7C5BB")
+    static let textTertiary = Color(hex: "7F9B8D")
+    static let suitRed = Color(hex: "F06A62")
+    static let success = Color(hex: "8ED4A5")
 }
 
 struct ThemedScreenModifier: ViewModifier {
@@ -31,6 +39,7 @@ struct ThemedScreenModifier: ViewModifier {
             .toolbarBackground(Theme.background, for: .navigationBar)
             .toolbarBackground(Theme.background, for: .tabBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
+            .tint(Theme.accent)
     }
 }
 
@@ -52,10 +61,10 @@ extension View {
     }
 
     func panel() -> some View {
-        background(Theme.surface, in: RoundedRectangle(cornerRadius: 14))
+        background(Theme.surface, in: RoundedRectangle(cornerRadius: 18))
             .overlay(
-                RoundedRectangle(cornerRadius: 14)
-                    .stroke(Theme.textSecondary.opacity(0.25), lineWidth: 1)
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(Theme.textTertiary.opacity(0.25), lineWidth: 1)
             )
     }
 }
@@ -72,7 +81,7 @@ struct ThemedButtonStyle: ButtonStyle {
     let kind: ThemedButtonKind
 
     func makeBody(configuration: Configuration) -> some View {
-        let shape = RoundedRectangle(cornerRadius: 12)
+        let shape = RoundedRectangle(cornerRadius: 15)
         configuration.label
             .font(.system(.body, design: .rounded, weight: kind == .primary ? .semibold : .regular))
             .foregroundStyle(foreground)
@@ -103,9 +112,9 @@ struct ThemedButtonStyle: ButtonStyle {
     private var background: Color {
         switch kind {
         case .primary:
-            return Theme.accent
+            return Theme.surfaceRaised
         case .strong:
-            return Theme.textPrimary
+            return Theme.accent
         case .outline, .destructive, .quiet:
             return .clear
         }
@@ -114,7 +123,7 @@ struct ThemedButtonStyle: ButtonStyle {
     private var border: Color? {
         switch kind {
         case .outline:
-            return Theme.textSecondary
+            return Theme.textTertiary
         case .destructive:
             return Theme.suitRed
         default:

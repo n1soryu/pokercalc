@@ -9,7 +9,7 @@ struct AppModelTests {
     private let store = ActiveNightStore(url: FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
         .appendingPathComponent("active-night.json"))
 
-    @Test func startDismissResumeAndEndDriveNavigationAndPersistResults() throws {
+    @Test func startDismissResumeAndEndDriveNavigationAndPersistResults() async throws {
         defer { try? FileManager.default.removeItem(at: store.url.deletingLastPathComponent()) }
         let context = try makeContext()
         let model = AppModel(store: store)
@@ -20,7 +20,7 @@ struct AppModelTests {
         #expect(model.hasActiveNight)
         #expect(throws: ActiveNightError.alreadyActive) { try model.start(session()) }
         let relaunched = AppModel(store: store)
-        relaunched.resume()
+        await relaunched.resume()
         #expect(relaunched.path == [.table])
         let controller = try #require(relaunched.activeController)
         controller.rebuy(seat: controller.session.seats[0].id, amount: 90)
@@ -48,18 +48,18 @@ struct AppModelTests {
         #expect(try context.fetchCount(FetchDescriptor<Night>()) == 0)
     }
 
-    @Test func corruptResumeIsVisibleAndCancelPreservesFile() throws {
+    @Test func corruptResumeIsVisibleAndCancelPreservesFile() async throws {
         defer { try? FileManager.default.removeItem(at: store.url.deletingLastPathComponent()) }
         try FileManager.default.createDirectory(at: store.url.deletingLastPathComponent(), withIntermediateDirectories: true)
         try Data("bad".utf8).write(to: store.url)
         let model = AppModel(store: store)
-        model.resume()
+        await model.resume()
         #expect(model.corruptSaveMessage != nil)
         #expect(model.activeController == nil)
         #expect(model.path.isEmpty)
         model.corruptSaveMessage = nil
         #expect(store.exists)
-        model.resume()
+        await model.resume()
         model.deleteCorruptSave()
         #expect(model.hasActiveNight == false)
         #expect(store.exists == false)
@@ -76,7 +76,7 @@ struct AppModelTests {
         #expect(model.path.isEmpty)
     }
 
-    @Test func finishingAgainUpdatesExistingArchiveInsteadOfDuplicatingIt() throws {
+    @Test func finishingAgainUpdatesExistingArchiveInsteadOfDuplicatingIt() async throws {
         defer { try? FileManager.default.removeItem(at: store.url.deletingLastPathComponent()) }
         let context = try makeContext()
         let original = try session()
@@ -85,7 +85,7 @@ struct AppModelTests {
         // Represents history saved successfully, followed by active-file removal failure.
         try store.write(original)
         let model = AppModel(store: store)
-        model.resume()
+        await model.resume()
         let controller = try #require(model.activeController)
         controller.startHand()
         controller.apply(.fold)
@@ -97,13 +97,13 @@ struct AppModelTests {
         #expect(try nights.first?.results.map(\.net) == [1, -1])
     }
 
-    @Test func legacyResumePersistsIdentityAndArchivesUnknownOriginalStack() throws {
+    @Test func legacyResumePersistsIdentityAndArchivesUnknownOriginalStack() async throws {
         defer { try? FileManager.default.removeItem(at: store.url.deletingLastPathComponent()) }
         var legacy = try TableSession(seats: [SessionSeat(name: "A", stack: 100), SessionSeat(name: "B", stack: 10)])
         legacy.nightID = nil
         try store.write(legacy)
         let model = AppModel(store: store)
-        model.resume()
+        await model.resume()
         #expect(model.path == [.table])
         #expect(try store.load().nightID != nil)
         #expect(model.activeController?.session.startingStack == nil)

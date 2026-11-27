@@ -121,15 +121,7 @@ struct TableView: View {
     private func table(_ state: HandState) -> some View {
         ScrollView {
             VStack(spacing: 16) {
-                Text(actorText(state))
-                    .font(.largeTitle.bold())
-                    .foregroundStyle(Theme.textPrimary)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                if !controller.legal.canCheck, controller.legal.callAmount > 0 {
-                    Text("Call \(controller.legal.callAmount)")
-                        .font(.system(.title3, design: .rounded, weight: .regular))
-                        .foregroundStyle(Theme.textSecondary)
-                }
+                tableHeader(state)
                 if let streetBanner = streetBanner(state.street) {
                     Text(streetBanner)
                         .font(.headline.bold())
@@ -161,6 +153,32 @@ struct TableView: View {
 
             .padding()
         }
+    }
+
+    private func tableHeader(_ state: HandState) -> some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(state.street == .complete ? "Hand complete" : state.street == .showdown ? "Showdown" : "Your table")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.accent)
+                    Text(actorText(state))
+                        .font(.system(size: 30, weight: .bold, design: .serif))
+                        .foregroundStyle(Theme.textPrimary)
+                }
+                Spacer()
+                Text("\(controller.session.smallBlind)/\(controller.session.bigBlind)")
+                    .font(.headline.monospacedDigit())
+                    .foregroundStyle(Theme.textSecondary)
+            }
+            if !controller.legal.canCheck, controller.legal.callAmount > 0 {
+                Label("Call \(controller.legal.callAmount)", systemImage: "arrow.turn.down.right")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.textSecondary)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(.top, 4)
     }
 
     @ViewBuilder
@@ -233,11 +251,11 @@ private struct AwardPanel: View {
                     Button {
                         if winners.contains(id) { winners.remove(id) } else { winners.insert(id) }
                     } label: {
-                        HStack {
-                            Text(seat.name)
-                            Spacer()
-                            Image(systemName: winners.contains(id) ? "checkmark.circle.fill" : "circle")
-                        }
+                        Text(seat.name)
+                            .frame(maxWidth: .infinity, alignment: .center)
+                            .overlay(alignment: .trailing) {
+                                Image(systemName: winners.contains(id) ? "checkmark.circle.fill" : "circle")
+                            }
                     }
                     .buttonStyle(ThemedButtonStyle(kind: winners.contains(id) ? .primary : .outline))
                     .accessibilityLabel("\(seat.name), \(winners.contains(id) ? "selected winner" : "eligible winner")")
@@ -286,10 +304,10 @@ private struct SeatRow: View {
             }
         }
         .padding()
-        .background(isActor ? Theme.accent : Theme.surface, in: RoundedRectangle(cornerRadius: 14))
+        .background(isActor ? Theme.accentSoft : Theme.surface, in: RoundedRectangle(cornerRadius: 18))
         .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(isActor ? Theme.textPrimary : Theme.textSecondary.opacity(0.25), lineWidth: isActor ? 2 : 1)
+            RoundedRectangle(cornerRadius: 18)
+                .stroke(isActor ? Theme.accent : Theme.textTertiary.opacity(0.25), lineWidth: isActor ? 2 : 1)
         )
         .opacity(seat.status == .folded ? 0.4 : 1)
         .accessibilityElement(children: .ignore)
@@ -346,12 +364,18 @@ private struct PotsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("Pot")
-                .font(.subheadline.bold())
-                .foregroundStyle(Theme.textSecondary)
+            HStack(alignment: .firstTextBaseline) {
+                Text("In the middle")
+                    .font(.subheadline.weight(.semibold))
+                    .foregroundStyle(Theme.textSecondary)
+                Spacer()
+                Text("points")
+                    .font(.caption)
+                    .foregroundStyle(Theme.textTertiary)
+            }
             Text("\(state.potTotal)")
-                .font(.title.bold().monospacedDigit())
-                .foregroundStyle(Theme.textPrimary)
+                .font(.system(size: 40, weight: .bold, design: .rounded).monospacedDigit())
+                .foregroundStyle(Theme.accent)
             ForEach(Array(state.pots.enumerated()), id: \.offset) { index, pot in
                 if index > 0 {
                     Text("Side pot \(index): \(pot.amount)")

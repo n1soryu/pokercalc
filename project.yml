@@ -52,6 +52,8 @@ schemes:
       targets:
         PokerNight: all
     run:
-      config: Debug
+      # This app is commonly run from Xcode as the installed game-night build.
+      # Use optimized code so Swift runtime startup does not dominate launch.
+      config: Release
     test:
       targets: [PokerNightTests]

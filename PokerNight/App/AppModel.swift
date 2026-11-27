@@ -10,6 +10,7 @@ final class AppModel {
     var path: [Route] = []
     private(set) var activeController: GameController?
     private(set) var hasSavedNight: Bool
+    private(set) var isResuming = false
     var corruptSaveMessage: String?
     var errorMessage: String?
     private let store: ActiveNightStore
@@ -26,15 +27,21 @@ final class AppModel {
 
     var hasActiveNight: Bool { activeController != nil || hasSavedNight }
 
-    func resume() {
+    func resume() async {
+        guard activeController == nil, !isResuming else { return }
+        isResuming = true
+        defer { isResuming = false }
+
         do {
-            if activeController == nil {
-                var session = try store.load()
-                if session.nightID == nil { session.nightID = UUID() }
+            let savedSession = try await loadSavedSession()
+            var session = savedSession
+
+            if session.nightID == nil {
+                session.nightID = UUID()
                 // Stabilize legacy archive identity before opening the table.
-                try store.write(session)
-                activeController = GameController(session: session, save: store.write)
+                try await saveLegacySession(session)
             }
+            activeController = GameController(session: session, save: store.write)
             path = [.table]
         } catch ActiveNightError.corrupt {
             corruptSaveMessage = ActiveNightError.corrupt.localizedDescription
@@ -42,6 +49,20 @@ final class AppModel {
             hasSavedNight = store.exists
             errorMessage = error.localizedDescription
         }
+    }
+
+    private func loadSavedSession() async throws -> TableSession {
+        let store = store
+        return try await Task.detached(priority: .userInitiated) {
+            try store.load()
+        }.value
+    }
+
+    private func saveLegacySession(_ session: TableSession) async throws {
+        let store = store
+        try await Task.detached(priority: .userInitiated) {
+            try store.write(session)
+        }.value
     }
 
     func start(_ session: TableSession) throws {
