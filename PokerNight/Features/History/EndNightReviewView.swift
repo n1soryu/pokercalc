@@ -12,7 +12,11 @@ struct EndNightReviewView: View {
         NavigationStack {
             List {
                 Section {
+                    Label("Safe to end", systemImage: "checkmark.shield.fill")
+                        .font(.headline)
+                        .foregroundStyle(Theme.success)
                     Text("Review every player's points before saving this night to Past Nights.")
+                        .foregroundStyle(Theme.textSecondary)
                     LabeledContent("Original starting stack", value: controller.session.startingStack.map(String.init) ?? "Not recorded")
                 }
                 .listRowBackground(Theme.surface)
@@ -21,7 +25,7 @@ struct EndNightReviewView: View {
                 }
                 .listRowBackground(Theme.surface)
                 Section {
-                    Button("Confirm and save night", role: .destructive) {
+                    Button("Save results and end night", role: .destructive) {
                         do {
                             try appModel.endNight(context: context)
                             dismiss()
@@ -29,12 +33,12 @@ struct EndNightReviewView: View {
                     }
                     .disabled(!controller.session.canEndNight)
                 } footer: {
-                    Text("This ends the night and removes its active save after the results are saved. Cancel to keep playing.")
+                    Text("PokerCalc saves the results first, then removes the active table. If saving fails, the active table is kept so you can try again.")
                 }
                 .listRowBackground(Theme.surface)
             }
             .themedScreen()
-            .navigationTitle("Review Night")
+            .navigationTitle("End Night")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
             .alert("Could not end night", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
                 Button("OK") { errorMessage = nil }

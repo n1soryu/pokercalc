@@ -6,11 +6,12 @@ import Foundation
 @MainActor
 @Observable
 final class AppModel {
-    enum Route: Hashable { case table, players, history }
+    enum Route: Hashable { case table, help, players, history }
     var path: [Route] = []
     private(set) var activeController: GameController?
     private(set) var hasSavedNight: Bool
     private(set) var isResuming = false
+    private(set) var savedNightSummary: ActiveNightSummary?
     var corruptSaveMessage: String?
     var errorMessage: String?
     private let store: ActiveNightStore
@@ -26,6 +27,16 @@ final class AppModel {
     }
 
     var hasActiveNight: Bool { activeController != nil || hasSavedNight }
+    var activeNightSummary: ActiveNightSummary? {
+        activeController.map { ActiveNightSummary(session: $0.session) } ?? savedNightSummary
+    }
+
+    func prepareHome() async {
+        guard activeController == nil, hasSavedNight, savedNightSummary == nil, !isResuming else { return }
+        if let session = try? await loadSavedSession() {
+            savedNightSummary = session.summary
+        }
+    }
 
     func resume() async {
         guard activeController == nil, !isResuming else { return }
@@ -42,6 +53,7 @@ final class AppModel {
                 try await saveLegacySession(session)
             }
             activeController = GameController(session: session, save: store.write)
+            savedNightSummary = session.summary
             path = [.table]
         } catch ActiveNightError.corrupt {
             corruptSaveMessage = ActiveNightError.corrupt.localizedDescription
@@ -70,6 +82,7 @@ final class AppModel {
         try store.write(session)
         hasSavedNight = true
         activeController = GameController(session: session, save: store.write)
+        savedNightSummary = session.summary
     }
 
     // Called after the setup sheet finishes dismissing, so the push cannot race it.
@@ -82,6 +95,7 @@ final class AppModel {
         do {
             try store.removeCorruptFile()
             hasSavedNight = store.exists
+            savedNightSummary = nil
             corruptSaveMessage = nil
         } catch { errorMessage = error.localizedDescription }
     }
@@ -94,6 +108,7 @@ final class AppModel {
         try store.remove()
         activeController = nil
         hasSavedNight = false
+        savedNightSummary = nil
         path = []
     }
 

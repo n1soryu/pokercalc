@@ -9,8 +9,11 @@ struct NightResultRow: View {
             LabeledContent("Total buy-in", value: "\(result.totalBuyIn)")
             LabeledContent("Final stack", value: "\(result.finalStack)")
             LabeledContent("Net") {
-                Text(result.signedNet)
-                    .foregroundStyle(result.net < 0 ? Theme.suitRed : Theme.textPrimary)
+                Label(
+                    result.signedNet,
+                    systemImage: result.net < 0 ? "arrow.down.right" : result.net > 0 ? "arrow.up.right" : "minus"
+                )
+                .foregroundStyle(result.net < 0 ? Theme.destructive : result.net > 0 ? Theme.success : Theme.textPrimary)
             }
         }
         .monospacedDigit()

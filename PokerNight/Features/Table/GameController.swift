@@ -21,39 +21,49 @@ final class GameController {
     var state: HandState? { session.currentState }
     var legal: LegalActions { state.map(legalActions) ?? LegalActions(canFold: false, canCheck: false, callAmount: 0, minRaiseTo: nil, maxRaiseTo: 0) }
 
-    func startHand() {
+    @discardableResult
+    func startHand() -> Bool {
         update { try $0.startNextHand() }
     }
 
-    func apply(_ action: PlayerAction) {
-        if update({ try $0.apply(.action(action)) }) {
+    @discardableResult
+    func apply(_ action: PlayerAction) -> Bool {
+        let succeeded = update { try $0.apply(.action(action)) }
+        if succeeded {
             #if canImport(UIKit)
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
             #endif
         }
+        return succeeded
     }
 
-    func undo() {
+    @discardableResult
+    func undo() -> Bool {
         update { try $0.undo() }
     }
 
-    func award(potIndex: Int, winners: [UUID]) {
+    @discardableResult
+    func award(potIndex: Int, winners: [UUID]) -> Bool {
         update { try $0.apply(.award(potIndex: potIndex, winners: winners)) }
     }
 
-    func changeBlinds(small: Int, big: Int) {
+    @discardableResult
+    func changeBlinds(small: Int, big: Int) -> Bool {
         update { try $0.setBlinds(smallBlind: small, bigBlind: big) }
     }
 
-    func rebuy(seat: UUID, amount: Int) {
+    @discardableResult
+    func rebuy(seat: UUID, amount: Int) -> Bool {
         update { try $0.rebuy(seat: seat, amount: amount) }
     }
 
-    func addPlayer(name: String, buyIn: Int) {
+    @discardableResult
+    func addPlayer(name: String, buyIn: Int) -> Bool {
         update { try $0.addPlayer(name: name.trimmingCharacters(in: .whitespacesAndNewlines), buyIn: buyIn) }
     }
 
-    func cashOut(seat: UUID) {
+    @discardableResult
+    func cashOut(seat: UUID) -> Bool {
         update { try $0.cashOut(seat: seat) }
     }
 
@@ -64,6 +74,7 @@ final class GameController {
             try change(&updated)
             try save(updated)
             session = updated
+            errorMessage = nil
             return true
         } catch {
             errorMessage = error.localizedDescription

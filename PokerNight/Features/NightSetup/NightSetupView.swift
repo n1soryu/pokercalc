@@ -23,9 +23,19 @@ struct NightSetupView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    VStack(alignment: .leading, spacing: Theme.Spacing.small) {
+                        Text("Set the seats, table rules, and first dealer.")
+                            .font(.headline)
+                        Text("PokerCalc uses points only. The dealer keeps this iPhone and records each announced action.")
+                            .font(.footnote)
+                            .foregroundStyle(Theme.textSecondary)
+                    }
+                }
+                .listRowBackground(Theme.surfaceSecondary)
                 rosterSection
                 seatSection
-                Section("Night") {
+                Section {
                     LabeledContent("Starting stack") {
                         TextField("Starting stack", text: $draft.startingStackText)
                             .keyboardType(.numberPad)
@@ -39,6 +49,10 @@ struct NightSetupView: View {
                         }
                     Stepper("Big blind: \(draft.bigBlind)", value: $draft.bigBlind, in: draft.smallBlind...2000)
                     Toggle("Allow rebuys", isOn: $draft.rebuysAllowed)
+                } header: {
+                    Text("Table rules")
+                } footer: {
+                    Text("Each player starts with the same stack. Blinds are forced points posted at the start of every hand.")
                 }
                 .listRowBackground(Theme.surface)
                 Section {
@@ -53,12 +67,16 @@ struct NightSetupView: View {
                     }
                     .disabled(draft.validationMessage(roster: players) != nil)
                     .buttonStyle(ThemedButtonStyle(kind: .strong))
+                } header: {
+                    Text("Ready to play")
+                } footer: {
+                    Text("Starting creates the table and saves it on this iPhone immediately.")
                 }
                 .listRowBackground(Theme.surface)
             }
             .environment(\.editMode, .constant(.active))
             .themedScreen()
-            .navigationTitle("New Night")
+            .navigationTitle("Start a Night")
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
             .alert("New night", isPresented: Binding(get: { errorMessage != nil }, set: { if !$0 { errorMessage = nil } })) {
                 Button("OK") { errorMessage = nil }
@@ -80,6 +98,11 @@ struct NightSetupView: View {
                     get: { draft.seatIDs.contains(player.id) },
                     set: { draft.select(player.id, isSelected: $0) }
                 ))
+            }
+            if roster.isEmpty {
+                Text("Add at least two players to begin. Names are saved for future nights.")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.textSecondary)
             }
         }
         .listRowBackground(Theme.surface)
@@ -112,7 +135,7 @@ struct NightSetupView: View {
         } header: {
             Text("Seat order")
         } footer: {
-            Text("Select players above, then drag the handles into clockwise seat order. The dealer stays selected when seats move.")
+            Text("Select players above, then drag the handles into clockwise seat order. The dealer stays selected when seats move. Reordering changes table position, not the saved roster.")
         }
         .listRowBackground(Theme.surface)
     }
