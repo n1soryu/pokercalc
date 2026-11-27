@@ -1,7 +1,7 @@
-# PokerNight
+# PokerCalc
 
 <p align="center">
-  <img src="PokerNight/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png" alt="PokerNight app icon" width="180">
+  <img src="PokerNight/Assets.xcassets/AppIcon.appiconset/AppIcon-1024.png" alt="PokerCalc app icon" width="180">
 </p>
 
 <p align="center">
@@ -12,11 +12,12 @@
   <a href="#status">Status</a>
 </p>
 
-**One iPhone. No chips. No arguments.**
+**One iPhone. Clear pots. No arguments.**
 
-PokerNight is a shared-phone dealer for No-Limit Texas Hold'em. One person runs the
-game and taps in each announced action; the app keeps the stacks, blinds, turn order,
-side pots, and history straight so the group can focus on playing.
+PokerCalc is a calm scorekeeper and pot-calculation companion for No-Limit Texas
+Hold'em. One dealer or host runs the game and taps each announced action; the app
+keeps stacks, blinds, turn order, side pots, and history straight so the group can
+focus on playing.
 
 ![iOS 17+](https://img.shields.io/badge/iOS-17%2B-black?style=flat-square)
 ![Swift](https://img.shields.io/badge/Swift-5%20UI-black?style=flat-square)
@@ -27,15 +28,18 @@ side pots, and history straight so the group can focus on playing.
 
 - **Strict betting engine** — legal raise-to sizes, all-ins, short all-ins, side pots,
   split pots, and undo across every street. Point conservation is asserted in debug builds.
-- **Table workflow** — change blinds, rebuy, add or cash out players between hands,
-  start the next hand, and autosave/resume a night in one tap.
+- **Dealer-first table** — the actor, street, legal actions, pot, stacks, and the exact
+  effect of Undo remain obvious while lower-frequency table tools stay separate.
+- **Confident betting** — legal raise limits, resulting totals, points added, stack
+  after the action, and clamped Min, Half pot, Pot, and All-in presets.
 - **Showdown checker** — a side sheet that never changes the game. Tap in the board and
   hole cards, get a plain-English winner explanation, and prefill it from any unawarded pot.
-- **Hand rankings** — a quick ten-row reference from Royal Flush down to High Card.
+- **Learning without a lecture** — contextual poker vocabulary, an optional how-to-play
+  reference, and a scannable strongest-to-weakest hand rankings guide.
 - **Roster and history** — saved players, ordered seating, first-dealer choice, end-night
   review, and past nights with buy-ins, final stacks, and signed net results.
-- **Built for real tables** — high-contrast forced-dark theme, VoiceOver labels,
-  Dynamic Type support, and monospaced point values.
+- **Built for real tables** — deliberate light and dark appearances, VoiceOver labels,
+  Dynamic Type-aware layouts, non-color state cues, and monospaced point values.
 
 No backend, no networking, no analytics, and no third-party runtime dependencies.
 
@@ -87,7 +91,7 @@ PokerNight/
 │   ├── App/                 root app model and navigation
 │   ├── Features/            Home, Players, NightSetup, Table, Showdown, Rankings, History
 │   ├── Persistence/         SwiftData models and active-night JSON store
-│   └── Shared/              card view and black/red/white theme
+│   └── Shared/              card view and semantic light/dark design system
 └── PokerNightTests/         app-level tests for controller, setup, and persistence
 ```
 
@@ -107,14 +111,23 @@ The free provisioning profile expires every 7 days; re-run from Xcode before gam
 Installing over the top preserves the roster and history — deleting the app does not.
 A free account allows at most 3 sideloaded apps per device.
 
+The Xcode target, module, bundle ID, and persistence identifiers intentionally retain
+their original `PokerNight` names so existing installations and saved data remain
+compatible. The installed display name and all user-facing branding are **PokerCalc**.
+
 App details: bundle ID `com.uzayer.pokernight`, development team `ZMY7V3G25Z`.
 
 ## Status
 
-All ten planned phases are implemented. Automated verification on 2026-11-25:
-**45 PokerCore tests** and **20 app tests** (27 runs including parameterized cases) pass
-on iPhone Duo / iOS 27.1, and the generic iOS Simulator build succeeds.
+The original ten delivery phases and the PokerCalc UI/UX implementation are complete.
+The current redesign plan, architecture audit, design tokens, screen hierarchy, and
+validation strategy are documented in
+[POKERCALC_REDESIGN.md](POKERCALC_REDESIGN.md).
 
-Interactive Simulator playtesting, VoiceOver/Dynamic Type inspection, physical-iPhone
-installation, and the release tag are still owner-side steps. See [PLAN.md](PLAN.md)
-for the exact checklists and the authoritative phase status.
+Automated verification on 2026-11-27: **45 PokerCore tests** and **25 app test
+methods** (32 runs including parameterized cases) pass on iPhone Duo / iOS 27.1,
+and the generic iOS Simulator Release build succeeds.
+
+Interactive Simulator playtesting, hands-on VoiceOver/Dynamic Type inspection,
+physical-iPhone installation, and the release tag remain manual/owner-side steps.
+See [PLAN.md](PLAN.md) for the exact checklists and authoritative phase status.

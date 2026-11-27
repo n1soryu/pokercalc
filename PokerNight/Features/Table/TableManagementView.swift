@@ -65,33 +65,58 @@ struct TableManagementView: View {
     var body: some View {
         NavigationStack {
             Form {
+                Section {
+                    Label(operation.explanation, systemImage: operation.systemImage)
+                        .font(.body)
+                        .foregroundStyle(Theme.textSecondary)
+                }
+                .listRowBackground(Theme.surfacePrimary)
                 switch operation {
                 case .blinds:
-                    numberField("Small blind", text: $small)
-                    numberField("Big blind", text: $big)
-                    Text("Use positive whole numbers. The big blind must cover the small blind.")
+                    Section("Blinds for the next hand") {
+                        numberField("Small blind", text: $small)
+                        numberField("Big blind", text: $big)
+                        Text("Use positive whole numbers. The big blind must be at least the small blind.")
+                            .font(.footnote)
+                            .foregroundStyle(Theme.textSecondary)
+                    }
                 case .add:
-                    TextField("Player name", text: $name)
-                    numberField("Buy-in", text: $amount)
-                    if !valid { Text("Enter a name and a positive whole-number buy-in.") }
+                    Section("New seat") {
+                        TextField("Player name", text: $name)
+                            .textInputAutocapitalization(.words)
+                        numberField("Starting points", text: $amount)
+                        if !valid {
+                            Text("Enter a name and a positive whole-number starting stack.")
+                                .foregroundStyle(Theme.warning)
+                        }
+                    }
                 case .rebuy:
-                    playerPicker
-                    numberField("Rebuy points", text: $amount)
-                    if let totals = rebuyTotals {
-                        LabeledContent("New stack", value: String(totals.stack))
-                        LabeledContent("Total buy-in", value: String(totals.buyIn))
-                    } else {
-                        Text("Enter a positive whole-number rebuy that fits the player’s balance.")
+                    Section("Rebuy") {
+                        playerPicker
+                        numberField("Points to add", text: $amount)
+                        if let totals = rebuyTotals {
+                            LabeledContent("New stack", value: String(totals.stack))
+                            LabeledContent("Total buy-in", value: String(totals.buyIn))
+                        } else {
+                            Text("Enter a positive whole-number rebuy that fits the player's balance.")
+                                .foregroundStyle(Theme.warning)
+                        }
                     }
                 case .cashOut:
-                    playerPicker
-                    if let seat { LabeledContent("Final stack", value: String(seat.stack)) }
+                    Section("Player leaving") {
+                        playerPicker
+                        if let seat { LabeledContent("Final stack", value: String(seat.stack)) }
+                    }
                 }
 
-                if operation == .cashOut {
-                    Button("Cash out", role: .destructive) { confirming = true }.disabled(!valid)
-                } else {
-                    Button("Save", action: submit).disabled(!valid)
+                Section {
+                    if operation == .cashOut {
+                        Button("Cash out player", role: .destructive) { confirming = true }
+                            .disabled(!valid)
+                    } else {
+                        Button(operation.actionTitle, action: submit)
+                            .disabled(!valid)
+                    }
                 }
             }
             .themedScreen()
@@ -103,6 +128,14 @@ struct TableManagementView: View {
                                 isPresented: $confirming, titleVisibility: .visible) {
                 Button("Cash out", role: .destructive, action: submit)
                 Button("Cancel", role: .cancel) {}
+            }
+            .alert("Could not update the table", isPresented: Binding(
+                get: { controller.errorMessage != nil },
+                set: { if !$0 { controller.errorMessage = nil } }
+            )) {
+                Button("OK") { controller.errorMessage = nil }
+            } message: {
+                Text(controller.errorMessage ?? "")
             }
         }
     }
@@ -117,26 +150,50 @@ struct TableManagementView: View {
 
     private func numberField(_ label: String, text: Binding<String>) -> some View {
         LabeledContent(label) {
-            TextField(label, text: text).keyboardType(.numberPad).multilineTextAlignment(.trailing)
+            TextField(label, text: text)
+                .keyboardType(.numberPad)
+                .multilineTextAlignment(.trailing)
+                .monospacedDigit()
         }
     }
 
     private func submit() {
         guard valid else { return }
+        let succeeded: Bool
         switch operation {
         case .blinds:
             guard let sb = Int(small), let bb = Int(big) else { return }
-            controller.changeBlinds(small: sb, big: bb)
+            succeeded = controller.changeBlinds(small: sb, big: bb)
         case .add:
             guard let points else { return }
-            controller.addPlayer(name: name, buyIn: points)
+            succeeded = controller.addPlayer(name: name, buyIn: points)
         case .rebuy:
             guard let seat, let points else { return }
-            controller.rebuy(seat: seat.id, amount: points)
+            succeeded = controller.rebuy(seat: seat.id, amount: points)
         case .cashOut:
             guard let seat else { return }
-            controller.cashOut(seat: seat.id)
+            succeeded = controller.cashOut(seat: seat.id)
         }
-        dismiss()
+        if succeeded { dismiss() }
+    }
+}
+
+private extension TableOperation {
+    var explanation: String {
+        switch self {
+        case .blinds: "Set the forced bets that will be posted when the next hand begins."
+        case .rebuy: "Add points to a player's stack and total buy-in."
+        case .add: "Seat a new player between hands without changing the saved roster."
+        case .cashOut: "Record a player's final stack and remove them from future hands."
+        }
+    }
+
+    var actionTitle: String {
+        switch self {
+        case .blinds: "Save blinds"
+        case .rebuy: "Add rebuy"
+        case .add: "Add to table"
+        case .cashOut: "Cash out player"
+        }
     }
 }

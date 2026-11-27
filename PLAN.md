@@ -1,12 +1,12 @@
-# PokerNight: Project Plan
+# PokerCalc: Project Plan
 
-**How to use this file.** This is the single source of truth for the PokerNight iPhone app: what it is, every decision, the full spec, the repo layout and the build plan. To resume work in any new chat (Copilot, Claude or anything else), paste this whole file in or point the assistant at it, and say which phase to work on. Keep it at the repo root as `PLAN.md`. The **Status** section is updated at the end of every phase, so this file always reflects where the project stands.
+**How to use this file.** This is the single source of truth for the PokerCalc iPhone app: what it is, every decision, the full spec, the repo layout and the build plan. The Xcode target, Swift module, bundle identifier, and existing persistence paths retain their original `PokerNight` technical names for compatibility. Keep this file at the repo root as `PLAN.md`; the **Status** section is updated at the end of every phase.
 
 ---
 
 ## 1. Status
 
-**Current phase:** Phase 10 — implemented, committed and pushed on 2026-11-25; interactive Simulator, owner-device, and release-tag checks remain
+**Current phase:** Phase 11 — PokerCalc UI/UX redesign implemented and automated verification passed on 2026-11-27; interactive accessibility/appearance checks remain
 
 - [x] Phase 0: Environment, Xcode project (XcodeGen), PokerCore package, cards, git
 - [x] Phase 1: Hand evaluator and explanations (PokerCore)
@@ -19,6 +19,7 @@
 - [ ] Phase 8: Between-hand table management and showdown integration
 - [ ] Phase 9: Setup, navigation, end-night, and history completion
 - [ ] Phase 10: Persistence hardening, accessibility, assets, and release validation
+- [ ] Phase 11: PokerCalc product, navigation, visual-system, and experience redesign
 
 **Deviations from this plan** (append one line per deviation: date, phase, what changed, why):
 
@@ -40,6 +41,8 @@
 - 2026-11-25, Phase 10 — Added a generated original card-and-chip icon because no source artwork existed. It uses only the project's black, white, and red palette and contains no text or third-party card art.
 - 2026-11-26, post-Phase 10 maintenance — Moved active-night resume I/O off the main actor, skipped the unnecessary rewrite for current saves, and made the winner-picker names truly centered to address observed opening lag and selection alignment.
 - 2026-11-26, post-Phase 10 performance follow-up — Instruments showed no app hang; Xcode Run’s `-Onone` Debug launch was dominated by Swift runtime initialization. The Run scheme now uses Release (`-O`), reducing simulator launch samples from 910 ms to 327 ms in the same app-only Time Profiler capture.
+- 2026-11-27, Phase 11 — Renamed the product throughout the user-facing experience to PokerCalc while retaining target/module/bundle/persistence identifiers for data and installation compatibility. Replaced the forced-dark casino palette with a semantic light/dark system and rebuilt the navigation, home, table, bet/raise, education, setup, roster, history, and end-night experiences around a dealer-operated workflow. The source-level audit and detailed design proposal are recorded in `POKERCALC_REDESIGN.md`.
+- 2026-11-27, Phase 11 — Replaced the old black/red icon with original text-free PokerCalc artwork: a warm card-and-score-chip mark on ink-indigo, generated specifically for this project and exported to all required opaque icon sizes.
 
 **Open questions** (append; remove when answered):
 
@@ -50,8 +53,9 @@
 - Apple Development Team ID: `ZMY7V3G25Z`
 - Bundle ID: `com.uzayer.pokernight`
 - Xcode version used: `Xcode 27.2 (build 27B52)`
-- Latest theme commit: `d7d65eb` — plain black, red, and white theme
-- Current implementation: Phases 0–10 are implemented and pushed to `origin/main`. Phases 7–9 were committed together on 2026-11-25 at the owner's request; their checkboxes remain open pending interactive Simulator sign-off. Phase 10 is committed and pushed, and awaits interactive Simulator, owner-device, and tag-authorization checks.
+- Installed display name: `PokerCalc`; technical target/module/product name: `PokerNight` (retained intentionally)
+- Current visual system: semantic, appearance-aware warm neutral surfaces with ink-indigo primary action, explicit state colors, editorial system typography, and monospaced numeric data
+- Current implementation: Phases 0–10 remain implemented. Phase 11 redesign source is implemented locally; its checkbox remains open until final automated verification and hands-on appearance/accessibility validation are recorded.
 - Pre-Phase 7 verification on 2026-11-24: all 34 PokerCore tests pass; the iOS Simulator build succeeds without compiler warnings.
 - Phase 7 automated verification on 2026-11-24: all 38 PokerCore tests passed, including live-pot shortcuts and limits, pot totals, end-night eligibility on every street, and undo/re-award across side pots and hand boundaries. All app Swift sources type-checked for the arm64 iOS Simulator with warnings treated as errors.
 - Phase 7 build and manual verification on 2026-11-24: the Section 2 generic build was attempted. Xcode package resolution encountered restricted cache writes and, with a writable module cache, a denied manifest sandbox. CoreSimulatorService refused the connection. No interactive scenarios were verified. On a Mac with Simulator access, run the Section 2 build and Section 9 Phase 7 item 7, then record the device and outcome before checking off and committing the phase.
@@ -69,6 +73,8 @@
 - Git note: after the 2026-11-25 push, local `master` tracks `origin/main`; verify the branch is clean and pushed before calling a release complete.
 - 2026-11-26 maintenance verification: 45 PokerCore tests and the generic iOS Simulator app build passed. The available iPhone Duo Simulator could not boot because its runtime reported “Data Migration Failed”, so interactive launch timing and visual confirmation could not be performed in this environment.
 - 2026-11-26 performance profiling: the connected iPhone’s Instruments service failed to start its required ktrace session, so no physical-device trace was available. Simulator app-only Time Profiler comparison showed Debug (`-Onone`) at 910 ms sampled launch work versus Release (`-O`) at 327 ms; both reported zero potential hangs.
+- Phase 11 automated verification on 2026-11-27: 45 PokerCore tests passed; 25 app test methods passed (32 runs including parameterized cases) on iPhone Duo / iOS 27.1; the generic iOS Simulator Release build and asset compilation succeeded; XcodeGen regenerated the project; source audits found no forced appearance, no raw UI colors outside `Theme.swift`, and no stale user-facing PokerNight copy. The only Xcode warning is the expected App Intents metadata skip because the app has no AppIntents dependency.
+- Phase 11 visual/accessibility validation on 2026-11-27: the Release build was installed and launched on iPhone Duo / iOS 27.1. The empty-night home screen was visually inspected in light and dark appearances at the standard Large text size and in dark appearance at Accessibility XXXL. Content remained scrollable, core copy was not truncated, the system vertical bar stayed clear, and the light/dark surface hierarchy rendered as intended. Semantic color pairs were measured at or above 4.5:1 for normal text. VoiceOver order, Reduce Motion, long player names, table/raise screens at accessibility sizes, and a full live-hand interaction flow still require hands-on device/Simulator inspection; do not check off Phase 11 until those checks are recorded.
 
 ### Remaining-work summary
 
@@ -78,6 +84,7 @@ Work in this order; the detailed definitions of done are in Section 9.
 2. **Complete the table workflow (Phase 8):** implemented and committed; manually verify blinds, rebuy, add player, cash out, between-hand guards, and the prefilled checker.
 3. **Verify setup and history (Phase 9):** implementation is committed and pushed. Finish the interactive start/resume, setup ordering/dealer, corruption recovery, end-review, and history deletion checklist recorded above, then sign off the open Phase 7–9 checkboxes.
 4. **Finish release checks (Phase 10):** implementation, automated verification, and push are complete. Run the documented interactive Simulator and owner-device checks, then authorize the planned tag if desired before marking the release complete.
+5. **Sign off the PokerCalc redesign (Phase 11):** finish automated verification, then inspect the principal flows in light/dark mode, at accessibility text sizes, and with VoiceOver on a Simulator or device.
 
 ---
 
@@ -124,12 +131,12 @@ Plus a saved roster of players and a log of past nights.
 | Money | Points only | No settlement, no currency. |
 | Evaluator | Side tool only | The dealer picks pot winners manually; the checker helps them decide. |
 | History | Roster + session log | No lifetime stats. |
-| Teaching aids | Hand rankings chart only | Keep it lean. |
+| Teaching aids | Contextual rules and vocabulary, plus rankings | Teach beginner dealers without blocking experienced play or adding strategy coaching. |
 | Distribution | Free Apple account, installed from Xcode | The install expires every 7 days; re-run from Xcode before game night. |
 
 ### Out of scope
 
-Tournaments, blind timers, payouts, antes, straddles, running it twice, multi-device sync, money settlement, Omaha or other variants, lifetime stats, teaching features beyond the rankings chart.
+Tournaments, blind timers, payouts, antes, straddles, running it twice, multi-device sync, money settlement, Omaha or other variants, lifetime stats, and poker strategy coaching.
 
 ### Defaults (owner may override)
 
@@ -209,7 +216,7 @@ targets:
         SWIFT_VERSION: "5.0"
         TARGETED_DEVICE_FAMILY: "1"
         GENERATE_INFOPLIST_FILE: YES
-        INFOPLIST_KEY_CFBundleDisplayName: "Poker Night"
+        INFOPLIST_KEY_CFBundleDisplayName: "PokerCalc"
         INFOPLIST_KEY_UILaunchScreen_Generation: YES
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone: UIInterfaceOrientationPortrait
@@ -406,7 +413,7 @@ public func replay(_ setup: HandSetup, _ events: [HandEvent]) throws -> HandStat
 ### 8.1 Shared
 
 - `CardView`: rank + suit symbol, red for hearts and diamonds, used everywhere.
-- Large, high-contrast type. The app intentionally uses its forced dark theme. Portrait iPhone only.
+- High-contrast, Dynamic Type-aware text with deliberate light and dark appearances. Portrait iPhone only.
 - Light haptic on each player action.
 
 ### 8.2 Showdown checker (Phase 2)
@@ -440,7 +447,7 @@ public func replay(_ setup: HandSetup, _ events: [HandEvent]) throws -> HandStat
   - `Player`: id, name, createdAt
   - `Night`: id, date, smallBlind, bigBlind, startingStack, rebuysAllowed, handsPlayed, results
   - `NightResult`: player id, player name, totalBuyIn, finalStack, net
-- **Home:** Resume night (only if an active file exists), New night, Past nights, Players, Hand rankings, Showdown checker.
+- **Home:** a state-aware PokerCalc welcome surface with one dominant Start a night or Resume table action; Players, Past nights, How to play, Hand rankings, and Showdown checker remain secondary.
 - **Players:** add, rename, delete.
 - **New night:** pick players from the roster or add new ones inline, drag to set seat order, starting stack (default 10, in 10-point increments), blinds (default 1/2), rebuys toggle, first dealer (pick or random).
 - **End night:** each player's net sorted best to worst, saves a `Night`, deletes the active-night file.
@@ -449,11 +456,11 @@ public func replay(_ setup: HandSetup, _ events: [HandEvent]) throws -> HandStat
 ### 8.0 Visual theme
 
 - Use `PokerNight/Shared/Theme/Theme.swift` as the only source of app colors.
-- Semantic tokens: plain black for background and surfaces, red for accent/suits/destructive actions, and white for text and icons.
-- No additional palette colors: global tint is white, list panels are black, borders are white, and red is reserved for suit marks and destructive emphasis.
-- Navigation titles use inline display mode to prevent them from overlapping screen content.
+- Semantic tokens cover backgrounds, primary/secondary/elevated surfaces, text hierarchy, primary/secondary/destructive actions, success/warning states, card faces, suit colors, current actor, disabled state, borders, and focus emphasis in both appearances.
+- Light mode uses warm off-white and paper-like surfaces with deep graphite text; dark mode uses charcoal/navy surfaces rather than a simple inversion. Ink-indigo is the primary action color, while suit red is distinct from destructive red.
+- Navigation uses a state-aware `NavigationStack`: the active table is the dominant destination, with explicit secondary learning and record destinations rather than a tab bar.
 - Reusable styles: `.themedScreen()`, `.themedSheet()`, `.panel()`, and `ThemedButtonStyle(kind:)` with primary, strong, outline, destructive, and quiet kinds.
-- The app is forced dark, uses rounded font design app-wide, and forces monospaced digits for stacks, bets, pots, and amounts.
+- The app follows system appearance. Editorial serif display roles are limited to identity and key headings; controls remain highly legible system text, and changing point values use monospaced digits.
 - No raw hex values or hardcoded SwiftUI colors outside `Theme.swift`; use semantic Theme tokens for every app visual.
 
 ---
@@ -467,7 +474,7 @@ Each phase must meet the Definition of Done in Section 2.
 1. Run the environment checks in Section 5 (steps 1 to 4). Stop and ask the owner for anything that needs their action.
 2. `git init` at the repo root; add the `.gitignore` from Section 4.
 3. Create `PokerCore/` per Section 4 with `Package.swift` (one library target `PokerCore`, one test target `PokerCoreTests`) and the Cards code from 7.1, plus tests for parsing and deck uniqueness (52 distinct cards).
-4. Create the app sources: `PokerNight/App/PokerNightApp.swift` with a placeholder Home view titled "Poker Night" that imports `PokerCore` and shows a few sample `CardView`s (proving the package links). Create `PokerNight/Assets.xcassets` with valid `Contents.json` files for `AppIcon` (single-size iOS icon slot, no image yet) and `AccentColor`.
+4. Create the app sources: `PokerNight/App/PokerNightApp.swift` with a placeholder Home view importing `PokerCore` and showing a few sample `CardView`s (proving the package links). Create `PokerNight/Assets.xcassets` with valid `Contents.json` files for `AppIcon` (single-size iOS icon slot, no image yet) and `AccentColor`.
 5. Write `project.yml` from Section 4 and run `xcodegen generate`.
 6. Run `swift test` in `PokerCore/` and the simulator build command from Section 2. Fix until both pass.
 7. Find the Team ID (Section 5, step 5), write it into `project.yml` and Section 1, regenerate, and rebuild.
@@ -555,13 +562,30 @@ This phase is the next work to do. It fixes issues that can mislead the dealer o
    - Do not rely on red/white color alone for player state or selection.
    - Retain high contrast and the intentional forced-dark theme.
 5. Review compact/small iPhone layouts and long player names. Make the table, award controls, raise controls, setup ordering, and history usable without inaccessible horizontal overflow.
-6. Add an original Poker Night app icon to `AppIcon.appiconset` with all assets required by the current Xcode asset format. Do not use copyrighted card art or third-party trademarks.
+6. Add an original app icon to `AppIcon.appiconset` with all assets required by the current Xcode asset format. Do not use copyrighted card art or third-party trademarks.
 7. Complete a clean end-to-end Simulator playtest from empty install through roster creation, setup, multiple hands, management operations, autosave relaunch, showdown awards, end night, and history. Record the tested simulator/device and date in Project facts.
 8. Give the owner the physical-iPhone checklist from Section 5. Physical-device signing/trust steps require the owner; record the result when available, but do not use `sudo` or ask for credentials.
 9. Verify Git delivery: clean worktree, latest commits pushed to the intended remote, an upstream configured for the main branch, and a known-good tag such as `v1.0-game-night`. Do not push or create a tag unless the owner has authorized that external/repository action.
 10. Reconcile this entire document against the final implementation. Remove completed remaining-work bullets, update facts and deviations, mark Phase 10 complete, and set Current phase to Complete only when no required item remains.
 
 **Phase 10 definition of done:** persistence failures are handled safely, conservation assertions/tests are comprehensive, accessibility and layout checks pass, the app has a real icon, a clean full-flow simulator test is documented, owner-only device steps are clearly handed off, Git release state is verified or explicitly recorded as awaiting owner authorization, all tests/build pass, and the phase is committed as `Phase 10: Harden and validate release`.
+
+### Phase 11: PokerCalc UI/UX redesign
+
+The source-grounded inventory, design rationale, information architecture, screen hierarchy, token specifications, accessibility strategy, implementation passes, test plan, and migration risks for this phase are maintained in `POKERCALC_REDESIGN.md`.
+
+1. Rename all user-facing identity and copy to **PokerCalc**, including the installed display name, while retaining existing technical identifiers that affect installation and saved-data continuity.
+2. Replace the forced-dark black/red/white theme with semantic, appearance-aware light and dark tokens for color, typography, spacing, shapes, borders, buttons, surfaces, motion, and numeric data.
+3. Replace the equal-weight home dashboard with a state-aware hybrid flow: one dominant Start a night or Resume table action, an active-night summary, and secondary learning and records destinations.
+4. Rebuild the live table around actor, street, legal actions, pot, and stacks. Keep the action dock reachable, separate administration from betting, expose explicit status labels, and make Undo describe what it will reverse.
+5. Rebuild Bet / Raise around legal totals and outcomes: current stack/commitment, call and pot context, min/max, resulting total, amount added, remaining stack, direct numeric entry, and clamped presets.
+6. Give showdown, hand-complete, and between-hand states explicit transitions and next actions. Keep the checker read-only and distinct from pot awarding.
+7. Expand optional beginner education through contextual explanations, How to play, an improved rankings reference, and plain-language checker results without adding strategy advice or forced onboarding.
+8. Reorganize setup into Players, Table rules, and Dealer/start concepts. Redesign roster and history as secondary utilities with useful empty states and explicit destructive confirmations.
+9. Add focused presentation tests and retain the entire PokerCore and app-level safety suite. Regenerate the Xcode project after source changes, run all tests and the generic Simulator build, and run `git diff --check`.
+10. Manually inspect the home, setup, table, raise, award, learning, roster, history, and end-night flows in light and dark appearances, at large accessibility sizes, with long names, and with VoiceOver. Record any device-specific findings before checking off the phase.
+
+**Phase 11 definition of done:** PokerCalc branding and redesigned flows are implemented without weakening the engine or persistence contracts; semantic styling contains all visual colors; automated tests and the generic Simulator build pass; documentation reflects the actual product; and hands-on light/dark, Dynamic Type, VoiceOver, and principal-flow validation is recorded. Automated implementation may be complete while the checkbox remains open for owner/device-only visual sign-off.
 
 ---
 

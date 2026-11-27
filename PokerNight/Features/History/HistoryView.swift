@@ -8,30 +8,40 @@ struct HistoryView: View {
     @State private var errorMessage: String?
 
     var body: some View {
-        List(nights) { night in
-            NavigationLink {
-                NightDetailView(night: night)
-            } label: {
-                VStack(alignment: .leading, spacing: 5) {
-                    Text(night.date, format: .dateTime.year().month().day())
-                    Text("\(night.handsPlayed) hands · Blinds \(night.smallBlind)/\(night.bigBlind)")
-                        .font(.caption).foregroundStyle(Theme.textSecondary)
-                    if let top = try? night.results.first {
-                        Text("Top result: \(top.name) \(top.signedNet)").monospacedDigit()
-                    } else {
-                        Text("Results unavailable").foregroundStyle(Theme.textSecondary)
+        List {
+            if nights.isEmpty {
+                ContentUnavailableView(
+                    "No past nights",
+                    systemImage: "clock.arrow.circlepath",
+                    description: Text("Finish an active night and confirm its results to save it here.")
+                )
+                .listRowBackground(Theme.surfacePrimary)
+            } else {
+                Section("Most recent first") {
+                    ForEach(nights) { night in
+                        HStack(alignment: .center, spacing: Theme.Spacing.small) {
+                            NavigationLink {
+                                NightDetailView(night: night)
+                            } label: {
+                                NightSummaryRow(night: night)
+                            }
+                            Button(role: .destructive) { pendingDeletion = night } label: {
+                                Label(
+                                    "Delete night from \(night.date.formatted(date: .abbreviated, time: .omitted))",
+                                    systemImage: "trash"
+                                )
+                                .labelStyle(.iconOnly)
+                                    .frame(width: 44, height: 44)
+                            }
+                            .buttonStyle(.plain)
+                            .foregroundStyle(Theme.destructive)
+                        }
+                        .listRowBackground(Theme.surfacePrimary)
                     }
                 }
             }
-            .swipeActions(allowsFullSwipe: false) {
-                Button("Delete", role: .destructive) { pendingDeletion = night }
-            }
-            .listRowBackground(Theme.surface)
         }
         .themedScreen()
-        .overlay {
-            if nights.isEmpty { ContentUnavailableView("No past nights", systemImage: "clock") }
-        }
         .navigationTitle("Past Nights")
         .confirmationDialog("Delete saved night?", isPresented: Binding(
             get: { pendingDeletion != nil }, set: { if !$0 { pendingDeletion = nil } }
@@ -50,6 +60,38 @@ struct HistoryView: View {
         context.delete(night)
         do { try context.save(); pendingDeletion = nil }
         catch { context.rollback(); errorMessage = error.localizedDescription }
+    }
+}
+
+private struct NightSummaryRow: View {
+    let night: Night
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Theme.Spacing.small) {
+            Text(night.date, format: .dateTime.year().month().day())
+                .font(.headline)
+                .foregroundStyle(Theme.textPrimary)
+            ViewThatFits(in: .horizontal) {
+                Text("\(night.handsPlayed) hands · Blinds \(night.smallBlind)/\(night.bigBlind)")
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("\(night.handsPlayed) hands")
+                    Text("Blinds \(night.smallBlind)/\(night.bigBlind)")
+                }
+            }
+            .font(.caption.monospacedDigit())
+            .foregroundStyle(Theme.textSecondary)
+            if let top = try? night.results.first {
+                Text("Top result: \(top.name) \(top.signedNet)")
+                    .font(.subheadline.weight(.medium).monospacedDigit())
+                    .foregroundStyle(top.net < 0 ? Theme.destructive : Theme.success)
+                    .fixedSize(horizontal: false, vertical: true)
+            } else {
+                Label("Results unavailable", systemImage: "exclamationmark.triangle")
+                    .font(.footnote)
+                    .foregroundStyle(Theme.warning)
+            }
+        }
+        .padding(.vertical, Theme.Spacing.xSmall)
     }
 }
 
